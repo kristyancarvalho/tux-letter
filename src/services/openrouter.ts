@@ -1,10 +1,6 @@
 import axios from 'axios';
-import dotenv from 'dotenv';
-import path from 'path';
 import { logger } from '../utils/logger';
 import { Item } from '../types';
-
-dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 interface OpenRouterResponse {
   choices: Array<{

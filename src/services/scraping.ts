@@ -196,7 +196,7 @@ export async function scrapePhoronixNews(): Promise<Item[]> {
         const $news = cheerio.load(newsResponse.data);
 
         item.title = $news('h1').text().trim() || item.title;
-        item.author = $news('.author, .byline, [class*="author"]').first().text().trim() || 'Desconhecido';
+        item.author = $news('.author, .byline, [class*="author"]').first().text().trim() || 'Desconhecido';  
         item.date = $news('.date, .published, time, [datetime]').first().text().trim() || 'Desconhecida';
         item.body = $news('article, .content').text().trim() || 'Sem corpo';
         
@@ -231,4 +231,8 @@ export function clearCache() {
 
 export function persistCache() {
   cache.persist();
+}
+
+export function getBotVerificationCount(): number {
+  return botVerificationCount;
 }
