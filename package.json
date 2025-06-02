@@ -1,0 +1,27 @@
+{
+  "name": "tux-teller",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "dev": "tsc --watch & nodemon dist/main.js",
+    "clean-cache": "ts-node ./src/scripts/clean-cache.ts",
+    "cache-stats": "ts-node -e \"import('./src/utils/cache').then(m => console.log(new m.NewsCache().getStats()))\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@types/node": "^22.15.29",
+    "axios": "^1.9.0",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.5.0",
+    "typescript": "^5.8.3",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "@types/cheerio": "^0.22.35"
+  }
+}
