@@ -1,5 +1,9 @@
 import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+import path from 'path';
 import { logger } from '../utils/logger';
+
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 interface EmailData {
   synthesizedText: string;
@@ -33,33 +37,82 @@ export class EmailService {
   }
 
   private formatEmailContent(data: EmailData): string {
-    const referencesSection = data.references.length > 0 
-      ? data.references.map((link, index) => `${index + 1}. ${link}`).join('\n')
-      : 'Nenhuma referência disponível';
+    const currentDate = new Date().toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
 
-    const footer = `
-═══════════════════════════════════════════
-📊 INFORMAÇÕES DO SISTEMA
-═══════════════════════════════════════════
-🤖 Verificações de bot: ${data.botVerificationCount}
-📰 Total de itens: ${data.totalItems}
-📧 Mensagens lore.kernel.org: ${data.loreItems}
-📰 Notícias Phoronix: ${data.phoronixItems}
-⏰ Executado em: ${new Date().toLocaleString('pt-BR')}
-═══════════════════════════════════════════`;
+    const referencesHtml = data.references.length > 0 
+      ? data.references.map((link, index) => 
+          `<tr>
+            <td style="padding: 8px 0; color: #555;">
+              <strong style="color: #2563eb;">${index + 1}.</strong> 
+              <a href="${link}" style="color: #2563eb; text-decoration: none; word-break: break-all;">${link}</a>
+            </td>
+          </tr>`
+        ).join('')
+      : '<tr><td style="padding: 8px 0; color: #888; font-style: italic;">Nenhuma referência disponível</td></tr>';
 
-    return `TUX TELLER
+    return `
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Tux Teller</title>
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <div style="max-width: 800px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              
+              <header style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white; padding: 40px 30px; text-align: center;">
+                  <div style="display: inline-flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+                      <div style="background-color: rgba(255, 255, 255, 0.1); padding: 12px; border-radius: 12px; margin-right: 15px;">
+                          <div style="font-size: 24px;">🐧</div>
+                      </div>
+                      <h1 style="margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.5px;">Tux Teller</h1>
+                  </div>
+                  <p style="margin: 0; font-size: 16px; opacity: 0.9; font-weight: 300;">${currentDate}</p>
+              </header>
 
-${data.synthesizedText}
+              <main style="padding: 40px 30px;">
+                  <div style="background-color: #f1f5f9; border-left: 4px solid #3b82f6; padding: 25px; margin-bottom: 40px; border-radius: 0 8px 8px 0;">
+                      <div style="color: #1e293b; font-size: 16px; line-height: 1.7; white-space: pre-line;">${data.synthesizedText}</div>
+                  </div>
 
-[LINKS DE REFERÊNCIA]
-${referencesSection}
+                  <div style="margin-bottom: 30px;">
+                      <h2 style="color: #1e293b; font-size: 20px; font-weight: 600; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e5e7eb;">
+                          📎 Referências
+                      </h2>
+                      <table style="width: 100%; border-collapse: collapse;">
+                          ${referencesHtml}
+                      </table>
+                  </div>
+              </main>
 
-${footer}`;
+              <footer style="background-color: #f8fafc; border-top: 1px solid #e5e7eb; padding: 20px 30px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                      <div style="display: flex; gap: 20px; font-size: 12px; color: #64748b;">
+                          <span>🤖 ${data.botVerificationCount} verificações</span>
+                          <span>📰 ${data.totalItems} itens</span>
+                          <span>📧 ${data.loreItems} lore</span>
+                          <span>📰 ${data.phoronixItems} phoronix</span>
+                      </div>
+                      <div style="font-size: 11px; color: #94a3b8;">
+                          ${new Date().toLocaleString('pt-BR')}
+                      </div>
+                  </div>
+              </footer>
+          </div>
+      </body>
+      </html>`;
   }
 
   async sendNewsEmail(data: EmailData): Promise<void> {
     try {
+      const currentDate = new Date().toLocaleDateString('pt-BR');
+      
       logger.info('Preparando envio de email', {
         to: this.toEmail,
         totalItems: data.totalItems,
@@ -67,10 +120,10 @@ ${footer}`;
       });
 
       const mailOptions = {
-        from: this.fromEmail,
+        from: `"Tux Teller" <${this.fromEmail}>`,
         to: this.toEmail,
-        subject: `Tux Teller - ${new Date().toLocaleDateString('pt-BR')} - ${data.totalItems} notícias`,
-        text: this.formatEmailContent(data)
+        subject: `Tux Teller • ${currentDate} • ${data.totalItems} atualizações`,
+        html: this.formatEmailContent(data)
       };
 
       const info = await this.transporter.sendMail(mailOptions);
