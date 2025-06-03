@@ -2,17 +2,9 @@ import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import path from 'path';
 import { logger } from '../utils/logger';
+import { EmailData } from '../types';
 
 dotenv.config({ path: path.join(__dirname, '../../.env') });
-
-interface EmailData {
-  synthesizedText: string;
-  references: string[];
-  botVerificationCount: number;
-  totalItems: number;
-  loreItems: number;
-  phoronixItems: number;
-}
 
 export class EmailService {
   private transporter: nodemailer.Transporter;
@@ -98,6 +90,8 @@ export class EmailService {
                           <span>📰 ${data.totalItems} itens</span>
                           <span>📧 ${data.loreItems} lore</span>
                           <span>📰 ${data.phoronixItems} phoronix</span>
+                          <span>🐧 ${data.linuxcomItems} linux.com</span>
+                          <span>🔗 ${data.itsfossItems} itsfoss</span>
                       </div>
                       <div style="font-size: 11px; color: #94a3b8;">
                           ${new Date().toLocaleString('pt-BR')}

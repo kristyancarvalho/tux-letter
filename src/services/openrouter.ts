@@ -48,7 +48,7 @@ export class OpenRouterService {
               content: prompt
             }
           ],
-          max_tokens: 2000,
+          max_tokens: 4000,
           temperature: 0.3
         },
         {
@@ -58,7 +58,7 @@ export class OpenRouterService {
             'HTTP-Referer': 'https://localhost:3000',
             'X-Title': 'Tux Teller'
           },
-          timeout: 30000
+          timeout: 45000
         }
       );
 
@@ -108,7 +108,7 @@ TIPO: ${item.type}
 TÍTULO: ${item.title}
 AUTOR: ${item.author}
 DATA: ${item.date}
-CONTEÚDO: ${item.body.substring(0, 1500)}
+CONTEÚDO: ${item.body.substring(0, 2000)}
 LINK: ${item.link}
 ---
 `;
@@ -116,15 +116,15 @@ LINK: ${item.link}
     }
 
     if (newsItems.length > 0) {
-      newsContent += '\n=== NOTÍCIAS GERAIS (Phoronix) ===\n';
+      newsContent += '\n=== NOTÍCIAS GERAIS ===\n';
       newsItems.forEach((item, index) => {
+        const source = this.getSourceFromLink(item.link);
         newsContent += `
-NOTÍCIA ${index + 1}:
-TIPO: ${item.type}
+NOTÍCIA ${index + 1} (${source}):
 TÍTULO: ${item.title}
 AUTOR: ${item.author}
 DATA: ${item.date}
-CONTEÚDO: ${item.body.substring(0, 1500)}
+CONTEÚDO: ${item.body.substring(0, 2000)}
 LINK: ${item.link}
 ---
 `;
@@ -132,20 +132,46 @@ LINK: ${item.link}
     }
 
     const prompt = `
-Você é um especialista em Linux e tecnologia. Analise todas as notícias abaixo e crie um texto sintetizado em português brasileiro.
+Você é um especialista em Linux e tecnologias open source com profundo conhecimento técnico. Analise todas as notícias e mensagens abaixo e crie um texto jornalístico abrangente em português brasileiro.
 
 ${newsContent}
 
-Tarefas:
-1. Crie um texto corrido em português brasileiro que sintetize todas as notícias
-2. Organize por temas quando possível (patches do kernel, notícias gerais, etc.)
-3. Traduza e resuma o conteúdo técnico de forma clara
-4. Mantenha o foco nos aspectos mais relevantes para a comunidade Linux
-5. Use um tom informativo e técnico apropriado
-6. IMPORTANTE: Certifique-se de incluir informações tanto das mensagens do lore.kernel.org quanto das notícias do Phoronix
+INSTRUÇÕES PARA O TEXTO:
 
-Formato de resposta:
-Apenas o texto sintetizado, sem cabeçalhos ou divisões especiais.
+1. ESTRUTURA E ORGANIZAÇÃO:
+   - Crie um texto corrido e coeso, como um artigo jornalístico especializado
+   - Organize por temas e relevância (kernel, distribuições, aplicações, hardware, etc.)
+   - Use transições naturais entre os assuntos
+   - Mantenha fluidez narrativa sem divisões rígidas
+
+2. CONTEÚDO E ANÁLISE:
+   - Traduza e explique conceitos técnicos de forma acessível mas precisa
+   - Contextualize as notícias dentro do ecossistema Linux/open source
+   - Explique a importância e impacto de patches, atualizações e desenvolvimentos
+   - Relacione diferentes notícias quando houver conexões temáticas
+   - Inclua detalhes técnicos relevantes sem perder a clareza
+
+3. ESTILO E TOM:
+   - Use tom jornalístico informativo e técnico, mas acessível
+   - Seja objetivo e factual, evitando especulações
+   - Mantenha interesse do leitor com linguagem envolvente
+   - Use terminologia técnica correta em português e inglês quando necessário
+
+4. EXTENSÃO E PROFUNDIDADE:
+   - Crie um texto substancial de pelo menos 800-1200 palavras
+   - Desenvolva cada tópico com profundidade adequada
+   - Não seja superficial - explore as implicações das notícias
+   - Inclua contexto histórico quando relevante
+
+5. INTEGRAÇÃO DE FONTES:
+   - Integre naturalmente informações de lore.kernel.org, Phoronix, Linux.com e Its FOSS
+   - Mencione a fonte apenas quando necessário para credibilidade
+   - Trate patches do kernel com especial atenção técnica
+   - Balance notícias de diferentes fontes harmoniosamente
+
+IMPORTANTE: Certifique-se de abordar TODAS as notícias fornecidas, integrando-as em um texto coeso e informativo que sirva como um resumo completo das novidades mais relevantes do mundo Linux.
+
+Responda APENAS com o texto sintetizado, sem preâmbulos, cabeçalhos ou divisões especiais.
 `;
 
     try {
@@ -190,6 +216,14 @@ Apenas o texto sintetizado, sem cabeçalhos ou divisões especiais.
         references: items.map(item => item.link)
       };
     }
+  }
+
+  private getSourceFromLink(link: string): string {
+    if (link.includes('phoronix.com')) return 'Phoronix';
+    if (link.includes('linux.com')) return 'Linux.com';
+    if (link.includes('itsfoss.com')) return 'Its FOSS';
+    if (link.includes('lore.kernel.org')) return 'lore.kernel.org';
+    return 'Fonte desconhecida';
   }
 
   async testConnection(): Promise<boolean> {

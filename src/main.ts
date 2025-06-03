@@ -1,13 +1,14 @@
-import { scrapeLoreMessages, scrapePhoronixNews, getCacheStats, persistCache, getBotVerificationCount } from './services/scraping';
+import { ScraperManager } from './scrapers';
 import { OpenRouterService } from './services/openrouter';
 import { EmailService } from './services/email';
+import { EmailData } from './types';
 import { logger } from './utils/logger';
-import { Item } from './types';
 
 async function main() {
   logger.info('🚀 Iniciando scraping de notícias Linux');
 
-  const cacheStats = getCacheStats();
+  const scraperManager = new ScraperManager();
+  const cacheStats = scraperManager.getCacheStats();
   logger.info('📊 Estatísticas do cache:', cacheStats);
 
   try {
@@ -28,30 +29,20 @@ async function main() {
     }
     logger.info('✅ Conexão SMTP confirmada');
 
-    const loreItems = await scrapeLoreMessages();
-    const phoronixItems = await scrapePhoronixNews();
-    const allItems = [...loreItems, ...phoronixItems];
+    const allItems = await scraperManager.scrapeAll();
 
-    const uniqueItems: Item[] = [];
-    const seenLinks = new Set<string>();
-
-    allItems.forEach(item => {
-      if (!seenLinks.has(item.link)) {
-        seenLinks.add(item.link);
-        uniqueItems.push(item);
-      }
-    });
-
-    if (uniqueItems.length === 0) {
+    if (allItems.length === 0) {
       logger.info('📰 Nenhuma notícia nova encontrada');
       
       await emailService.sendNewsEmail({
         synthesizedText: 'Nenhuma notícia nova encontrada hoje.',
         references: [],
-        botVerificationCount: getBotVerificationCount(),
+        botVerificationCount: scraperManager.getBotVerificationCount(),
         totalItems: 0,
         loreItems: 0,
-        phoronixItems: 0
+        phoronixItems: 0,
+        linuxcomItems: 0,
+        itsfossItems: 0
       });
 
       return {
@@ -60,10 +51,10 @@ async function main() {
       };
     }
 
-    logger.info('📰 Notícias novas encontradas:', { total: uniqueItems.length });
+    logger.info('📰 Notícias novas encontradas:', { total: allItems.length });
     
-    uniqueItems.forEach((item, index) => {
-      logger.info(`📄 Item coletado [${index + 1}/${uniqueItems.length}]`, {
+    allItems.forEach((item, index) => {
+      logger.info(`📄 Item coletado [${index + 1}/${allItems.length}]`, {
         type: item.type,
         title: item.title,
         author: item.author,
@@ -74,26 +65,35 @@ async function main() {
     });
 
     logger.info('🤖 Iniciando síntese de todas as notícias com OpenRouter API');
-    const synthesizedNews = await openRouterService.synthesizeAllNews(uniqueItems);
+    const synthesizedNews = await openRouterService.synthesizeAllNews(allItems);
+
+    const loreItems = allItems.filter(item => item.type === 'patch' || item.type === 'inbox');
+    const phoronixItems = allItems.filter(item => item.link.includes('phoronix.com'));
+    const linuxcomItems = allItems.filter(item => item.link.includes('linux.com'));
+    const itsfossItems = allItems.filter(item => item.link.includes('itsfoss.com'));
 
     logger.info('📧 Enviando email com notícias sintetizadas');
     await emailService.sendNewsEmail({
       synthesizedText: synthesizedNews.synthesizedText,
       references: synthesizedNews.references,
-      botVerificationCount: getBotVerificationCount(),
-      totalItems: uniqueItems.length,
+      botVerificationCount: scraperManager.getBotVerificationCount(),
+      totalItems: allItems.length,
       loreItems: loreItems.length,
-      phoronixItems: phoronixItems.length
+      phoronixItems: phoronixItems.length,
+      linuxcomItems: linuxcomItems.length,
+      itsfossItems: itsfossItems.length
     });
 
-    persistCache();
+    scraperManager.persistCache();
 
-    const finalCacheStats = getCacheStats();
+    const finalCacheStats = scraperManager.getCacheStats();
     logger.info('✅ Scraping, síntese e envio de email concluídos', { 
-      novasNoticias: uniqueItems.length,
+      novasNoticias: allItems.length,
       totalLinksCache: finalCacheStats.totalLinks,
       loreItems: loreItems.length,
       phoronixItems: phoronixItems.length,
+      linuxcomItems: linuxcomItems.length,
+      itsfossItems: itsfossItems.length,
       synthesizedTextLength: synthesizedNews.synthesizedText.length,
       totalReferences: synthesizedNews.references.length,
       emailSent: true
