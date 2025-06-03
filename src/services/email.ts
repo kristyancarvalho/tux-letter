@@ -13,7 +13,7 @@ export class EmailService {
 
   constructor() {
     const gmailPassword = process.env.GMAIL_APP_PASSWORD;
-    this.fromEmail = process.env.GMAIL_USER || 'tuxteller@gmail.com';
+    this.fromEmail = process.env.GMAIL_USER || 'tuxletter@gmail.com';
 
     if (!gmailPassword) {
       throw new Error('GMAIL_APP_PASSWORD não encontrada nas variáveis de ambiente');
@@ -53,7 +53,7 @@ export class EmailService {
       <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Tux Teller</title>
+          <title>Tux Letter</title>
       </head>
       <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
           <div style="max-width: 800px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
@@ -63,7 +63,7 @@ export class EmailService {
                       <div style="background-color: rgba(255, 255, 255, 0.1); padding: 12px; border-radius: 12px; margin-right: 15px;">
                           <div style="font-size: 24px;">🐧</div>
                       </div>
-                      <h1 style="margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.5px;">Tux Teller</h1>
+                      <h1 style="margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.5px;">Tux Letter</h1>
                   </div>
                   <p style="margin: 0; font-size: 16px; opacity: 0.9; font-weight: 300;">${currentDate}</p>
               </header>
@@ -114,9 +114,9 @@ export class EmailService {
       });
 
       const mailOptions = {
-        from: `"Tux Teller" <${this.fromEmail}>`,
+        from: `"Tux Letter" <${this.fromEmail}>`,
         to: this.toEmail,
-        subject: `Tux Teller • ${currentDate} • ${data.totalItems} atualizações`,
+        subject: `Tux Letter • ${currentDate} • ${data.totalItems} atualizações`,
         html: this.formatEmailContent(data)
       };
 

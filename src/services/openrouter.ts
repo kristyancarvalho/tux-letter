@@ -56,7 +56,7 @@ export class OpenRouterService {
             'Authorization': `Bearer ${this.apiKey}`,
             'Content-Type': 'application/json',
             'HTTP-Referer': 'https://localhost:3000',
-            'X-Title': 'Tux Teller'
+            'X-Title': 'Tux Letter'
           },
           timeout: 45000
         }
