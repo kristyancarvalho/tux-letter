@@ -3,6 +3,7 @@ import { OpenRouterService } from './services/openrouter';
 import { EmailService } from './services/email';
 import { EmailData } from './types';
 import { logger } from './utils/logger';
+import { scheduler } from './scheduler';
 
 async function main() {
   logger.info('🚀 Iniciando scraping de notícias Linux');
@@ -111,13 +112,9 @@ async function main() {
 }
 
 if (require.main === module) {
-  main().catch(error => {
-    logger.error('❌ Erro no script principal', { 
-      error: error.message,
-      stack: error.stack 
-    });
-    process.exit(1);
-  });
+  scheduler.start();
+  logger.info('🚀 Aplicação iniciada com scheduler');
+  logger.info('Status do scheduler:', scheduler.getStatus());
 }
 
 export { main };
