@@ -1,9 +1,9 @@
 import { ScraperManager } from './scrapers';
 import { OpenRouterService } from './services/openrouter';
 import { EmailService } from './services/email';
-import { EmailData } from './types';
 import { logger } from './utils/logger';
 import { scheduler } from './scheduler';
+import * as http from 'http';
 
 async function main() {
   logger.info('🚀 Iniciando scraping de notícias Linux');
@@ -112,6 +112,20 @@ async function main() {
 }
 
 if (require.main === module) {
+  const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      status: 'running',
+      scheduler: scheduler.getStatus(),
+      timestamp: new Date().toISOString()
+    }));
+  });
+
+  const PORT = process.env.PORT || 8080;
+  server.listen(PORT, () => {
+    logger.info(`🌐 Fake HTTP Server iniciado na porta ${PORT}`);
+  });
+
   scheduler.start();
   logger.info('🚀 Aplicação iniciada com scheduler');
   logger.info('Status do scheduler:', scheduler.getStatus());
