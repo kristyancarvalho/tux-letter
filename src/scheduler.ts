@@ -7,7 +7,7 @@ class NewsScheduler {
   private isRunning = false;
 
   start() {
-    this.job = cron.schedule('0 8 * * *', async () => {
+    this.job = cron.schedule('0 20 * * *', async () => {
       if (this.isRunning) {
         logger.warn('⏳ Job anterior ainda em execução, pulando esta iteração');
         return;
@@ -32,7 +32,7 @@ class NewsScheduler {
     });
 
     this.job.start();
-    logger.info('📅 Scheduler iniciado - execução diária às 08:00');
+    logger.info('📅 Scheduler iniciado - execução diária às 20:00');
   }
 
   stop() {
