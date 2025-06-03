@@ -17,5 +17,5 @@
 ### 5. Identificadores de Bots
 - [ ] Implementar proxy rotation ou diferentes User-Agents
 - [ ] Usar cookies/sessões persistentes
-- [ ] Aumentar intervalos entre requisições
-- [ ] Verificar fonte alternativa
+- [x] Aumentar intervalos entre requisições
+- [x] Verificar fonte alternativa

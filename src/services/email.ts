@@ -85,14 +85,14 @@ export class EmailService {
 
               <footer style="background-color: #f8fafc; border-top: 1px solid #e5e7eb; padding: 20px 30px;">
                   <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-                      <div style="display: flex; gap: 20px; font-size: 12px; color: #64748b;">
-                          <span>🤖 ${data.botVerificationCount} verificações</span>
-                          <span>📰 ${data.totalItems} itens</span>
-                          <span>📧 ${data.loreItems} lore</span>
-                          <span>📰 ${data.phoronixItems} phoronix</span>
-                          <span>🐧 ${data.linuxcomItems} linux.com</span>
-                          <span>🔗 ${data.itsfossItems} itsfoss</span>
-                      </div>
+                      <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: #64748b;">
+                        <span>🤖 ${data.botVerificationCount} verificações</span>
+                        <span>📰 ${data.totalItems} itens</span>
+                        <span>📧 ${data.loreItems} lore</span>
+                        <span>📰 ${data.phoronixItems} phoronix</span>
+                        <span>🐧 ${data.linuxcomItems} linux.com</span>
+                        <span>🔗 ${data.itsfossItems} itsfoss</span>
+                      </div>  
                       <div style="font-size: 11px; color: #94a3b8;">
                           ${new Date().toLocaleString('pt-BR')}
                       </div>
