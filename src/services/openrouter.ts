@@ -132,50 +132,95 @@ LINK: ${item.link}
     }
 
     const prompt = `
-Você é um especialista em Linux e tecnologias open source com profundo conhecimento técnico. Analise todas as notícias e mensagens abaixo e crie um texto jornalístico abrangente em português brasileiro.
+Você é um editor especializado em newsletters sobre Linux e tecnologias open source. Crie uma newsletter completa em português brasileiro usando Markdown, com base nas notícias e mensagens fornecidas abaixo.
 
 ${newsContent}
 
-INSTRUÇÕES PARA O TEXTO:
+INSTRUÇÕES PARA A NEWSLETTER:
 
-1. ESTRUTURA E ORGANIZAÇÃO:
-   - Crie um texto corrido e coeso, como um artigo jornalístico especializado
-   - Organize por temas e relevância (kernel, distribuições, aplicações, hardware, etc.)
-   - Use transições naturais entre os assuntos
-   - Mantenha fluidez narrativa sem divisões rígidas
+## ESTRUTURA EM MARKDOWN:
 
-2. CONTEÚDO E ANÁLISE:
-   - Traduza e explique conceitos técnicos de forma acessível mas precisa
-   - Contextualize as notícias dentro do ecossistema Linux/open source
-   - Explique a importância e impacto de patches, atualizações e desenvolvimentos
-   - Relacione diferentes notícias quando houver conexões temáticas
-   - Inclua detalhes técnicos relevantes sem perder a clareza
+1. **CABEÇALHO PRINCIPAL:**
+   - Use \`# 📰 Destaques das últimas 24 horas\` como título principal
+   - Inclua uma breve introdução sobre o que será abordado
 
-3. ESTILO E TOM:
-   - Use tom jornalístico informativo e técnico, mas acessível
-   - Seja objetivo e factual, evitando especulações
-   - Mantenha interesse do leitor com linguagem envolvente
-   - Use terminologia técnica correta em português e inglês quando necessário
+2. **SEÇÕES ORGANIZADAS:**
+   - \`## 🔧 Desenvolvimento do Kernel Linux\` (para patches e lore)
+   - \`## 📰 Notícias em Destaque\` (para notícias gerais)
+   - \`## 🚀 Lançamentos e Atualizações\` (se houver)
+   - \`## 💡 Tecnologias Emergentes\` (se relevante)
 
-4. EXTENSÃO E PROFUNDIDADE:
-   - Crie um texto substancial de pelo menos 800-1200 palavras
+3. **FORMATAÇÃO MARKDOWN:**
+   - Use **negrito** para destacar pontos importantes
+   - Use *itálico* para ênfase
+   - Use \`código\` para termos técnicos, versões e comandos
+   - Use > citações para destacar informações importantes
+   - Use listas numeradas ou com marcadores quando apropriado
+
+## CONTEÚDO E ESTILO:
+
+1. **Tom de Newsletter:**
+   - Linguagem acessível mas tecnicamente precisa
+   - Engajamento direto com o leitor
+   - Contextualize desenvolvimentos dentro do ecossistema Linux
+   - Explique a importância prática de cada notícia
+
+2. **Organização do Conteúdo:**
+   - Comece com um resumo executivo dos principais destaques
+   - Agrupe notícias relacionadas em seções temáticas
    - Desenvolva cada tópico com profundidade adequada
-   - Não seja superficial - explore as implicações das notícias
-   - Inclua contexto histórico quando relevante
+   - Inclua detalhes técnicos relevantes sem perder clareza
 
-5. INTEGRAÇÃO DE FONTES:
-   - Integre naturalmente informações de lore.kernel.org, Phoronix, Linux.com e Its FOSS
-   - Mencione a fonte apenas quando necessário para credibilidade
-   - Trate patches do kernel com especial atenção técnica
-   - Balance notícias de diferentes fontes harmoniosamente
+3. **Análise e Contexto:**
+   - Explique o impacto de patches e atualizações do kernel
+   - Relacione diferentes notícias quando houver conexões
+   - Inclua perspectivas sobre tendências e desenvolvimentos futuros
+   - Mencione benefícios práticos para usuários e desenvolvedores
 
-IMPORTANTE: Certifique-se de abordar TODAS as notícias fornecidas, integrando-as em um texto coeso e informativo que sirva como um resumo completo das novidades mais relevantes do mundo Linux.
+## DIRETRIZES ESPECÍFICAS:
 
-Responda APENAS com o texto sintetizado, sem preâmbulos, cabeçalhos ou divisões especiais.
+- **Extensão:** 1000-1500 palavras, bem estruturadas
+- **Patches do Kernel:** Explique funcionalidades, melhorias de performance e correções
+- **Notícias Gerais:** Contextualize dentro do ecossistema open source
+- **Linguagem Técnica:** Use terminologia correta em português, com termos em inglês quando necessário
+- **Integração:** Todas as notícias devem ser abordadas de forma coesa
+
+## EXEMPLO DE ESTRUTURA:
+
+\`\`\`markdown
+# 🐧 Destaques da Semana
+
+Bem-vindos à mais nova edição da Tux Letter! Esta semana trouxe desenvolvimentos significativos...
+
+## 🔧 Desenvolvimento do Kernel Linux
+
+### Melhorias no Subsistema de Rede
+
+O kernel Linux recebeu importantes atualizações...
+
+## 📰 Notícias em Destaque
+
+### Nova Versão do Ubuntu
+
+A Canonical anunciou...
+
+## 💡 Perspectivas
+
+Com esses desenvolvimentos, podemos esperar...
+\`\`\`
+
+IMPORTANTE: 
+- Responda APENAS com o conteúdo da newsletter em Markdown
+- Não inclua preâmbulos ou explicações sobre o formato
+- Assegure-se de abordar TODAS as notícias fornecidas
+- Mantenha consistência no uso de emojis e formatação
+- Crie um fluxo narrativo envolvente e informativo
+
+Responda exclusivamente com a newsletter em formato Markdown.
 `;
 
     try {
-      logger.info('Iniciando síntese de todas as notícias', {
+      logger.info('Iniciando síntese de newsletter', {
         totalItems: items.length,
         loreItems: loreItems.length,
         newsItems: newsItems.length,
@@ -186,14 +231,14 @@ Responda APENAS com o texto sintetizado, sem preâmbulos, cabeçalhos ou divisõ
       const references = items.map(item => item.link);
 
       logger.info('📰 Resposta da API:');
-      logger.info('[TEXTO DA LLM]');
+      logger.info('[NEWSLETTER EM MARKDOWN]');
       logger.info(response);
       logger.info('[LINKS DAS REFERENCIAS]');
       references.forEach((link, index) => {
         logger.info(`${index + 1}. ${link}`);
       });
 
-      logger.info('Síntese de notícias concluída', {
+      logger.info('Newsletter gerada com sucesso', {
         responseLength: response.length,
         totalReferences: references.length,
         loreReferences: loreItems.length,
@@ -206,13 +251,23 @@ Responda APENAS com o texto sintetizado, sem preâmbulos, cabeçalhos ou divisõ
       };
 
     } catch (error) {
-      logger.error('Erro ao sintetizar notícias com OpenRouter', {
+      logger.error('Erro ao gerar newsletter com OpenRouter', {
         error: (error as Error).message,
         totalItems: items.length
       });
       
       return {
-        synthesizedText: 'Não foi possível sintetizar as notícias devido a erro na API',
+        synthesizedText: `# 🐧 Tux Letter
+
+## ⚠️ Erro na Geração
+
+Não foi possível gerar a newsletter devido a um erro na API. Por favor, tente novamente mais tarde.
+
+## 📊 Estatísticas
+
+- **Total de itens:** ${items.length}
+- **Mensagens do kernel:** ${loreItems.length}
+- **Notícias gerais:** ${newsItems.length}`,
         references: items.map(item => item.link)
       };
     }
