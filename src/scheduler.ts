@@ -32,7 +32,7 @@ class NewsScheduler {
     });
 
     this.job.start();
-    logger.info('📅 Scheduler iniciado - execução diária às 20:00');
+    logger.info('📅 Scheduler iniciado - execução diária às 20:00 (horário de São Paulo)');
   }
 
   stop() {
@@ -46,8 +46,32 @@ class NewsScheduler {
   getStatus() {
     return {
       isScheduled: this.job !== null,
-      isRunning: this.isRunning
+      isRunning: this.isRunning,
+      nextExecution: this.job ? '20:00 (todos os dias)' : 'N/A'
     };
+  }
+  async runNow() {
+    if (this.isRunning) {
+      logger.warn('⏳ Job já em execução, aguarde a conclusão');
+      return false;
+    }
+
+    logger.info('🔄 Executando job manualmente');
+    this.isRunning = true;
+
+    try {
+      await main();
+      logger.info('✅ Job manual concluído com sucesso');
+      return true;
+    } catch (error) {
+      logger.error('❌ Erro no job manual', {
+        error: (error as Error).message,
+        stack: (error as Error).stack
+      });
+      return false;
+    } finally {
+      this.isRunning = false;
+    }
   }
 }
 
@@ -68,8 +92,16 @@ process.on('SIGINT', () => {
 if (require.main === module) {
   scheduler.start();
   
-  logger.info('🚀 Aplicação iniciada com scheduler');
-  logger.info('Status do scheduler:', scheduler.getStatus());
+  logger.info('🚀 Scheduler iniciado com sucesso');
+  logger.info('📊 Status do scheduler:', scheduler.getStatus());
+  
+  process.on('exit', () => {
+    logger.info('👋 Encerrando scheduler');
+  });
+  
+  setInterval(() => {
+    logger.info('💓 Scheduler ativo - Status:', scheduler.getStatus());
+  }, 60 * 60 * 1000);
 }
 
 export { NewsScheduler, scheduler };

@@ -2,7 +2,6 @@ import { ScraperManager } from './scrapers';
 import { OpenRouterService } from './services/openrouter';
 import { EmailService } from './services/email';
 import { logger } from './utils/logger';
-import { scheduler } from './scheduler';
 
 async function main() {
   logger.info('🚀 Iniciando scraping de notícias Linux');
@@ -111,9 +110,18 @@ async function main() {
 }
 
 if (require.main === module) {
-  scheduler.start();
-  logger.info('🚀 Aplicação iniciada com scheduler');
-  logger.info('Status do scheduler:', scheduler.getStatus());
+  main()
+    .then((result) => {
+      logger.info('✅ Execução do main concluída com sucesso');
+      process.exit(0);
+    })
+    .catch((error) => {
+      logger.error('❌ Erro fatal na execução do main', {
+        error: error.message,
+        stack: error.stack
+      });
+      process.exit(1);
+    });
 }
 
 export { main };
