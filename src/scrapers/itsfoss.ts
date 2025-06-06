@@ -2,9 +2,14 @@ import * as cheerio from 'cheerio';
 import { logger } from '../utils/logger';
 import { Item } from '../types';
 import { BaseScraper } from './base';
+import { NewsCache } from '../utils/cache';
 
 export class ItsFossScraper extends BaseScraper {
   private baseUrl = 'https://news.itsfoss.com';
+
+  constructor(sharedCache?: NewsCache) {
+    super(sharedCache);
+  }
 
   async scrape(): Promise<Item[]> {
     const url = this.baseUrl;
@@ -41,48 +46,9 @@ export class ItsFossScraper extends BaseScraper {
         const linkData = newsLinks.find(link => link.href === href);
         if (!linkData) continue;
 
-        const item: Item = {
-          type: 'news',
-          title: linkData.title,
-          author: 'Its FOSS',
-          date: 'Desconhecida',
-          body: '',
-          link: href
-        };
-
-        try {
-          await this.delay(1000);
-          const newsHtml = await this.fetchPage(href);
-          const $news = cheerio.load(newsHtml);
-
-          const title = $news('h1, .post-title, .entry-title').first().text().trim();
-          const author = $news('.author-name, .byline, [rel="author"]').first().text().trim();
-          const date = $news('.published-date, .post-date, time').first().text().trim() ||
-                      $news('time[datetime]').first().attr('datetime');
-          const bodyText = $news('article p, .post-content p, .entry-content p')
-                          .map((i, p) => $(p).text().trim())
-                          .get()
-                          .filter(text => text.length > 20)
-                          .join(' ');
-
-          item.title = title || item.title;
-          item.author = author || item.author;
-          item.date = date || item.date;
-          item.body = bodyText || 'Conteúdo não disponível';
-
-          this.cache.markAsSeen(href);
+        const item = await this.processNewsItem(href, linkData, 'Its FOSS');
+        if (item) {
           items.push(item);
-
-          logger.info('Notícia processada do Its FOSS News', {
-            title: item.title.substring(0, 50),
-            author: item.author
-          });
-
-        } catch (error) {
-          logger.error('Erro ao processar notícia do Its FOSS News', {
-            url: href,
-            error: (error as Error).message
-          });
         }
       }
 

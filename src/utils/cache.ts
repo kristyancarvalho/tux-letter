@@ -10,6 +10,7 @@ interface CacheData {
 export class NewsCache {
   private cacheFile: string;
   private seenLinks: Set<string> = new Set();
+  private hasChanges: boolean = false;
 
   constructor(cacheDir: string = path.join(__dirname, '../../cache')) {
     if (!fs.existsSync(cacheDir)) {
@@ -49,6 +50,7 @@ export class NewsCache {
       };
       
       fs.writeFileSync(this.cacheFile, JSON.stringify(cacheData, null, 2));
+      this.hasChanges = false;
       logger.info('Cache salvo', { 
         totalLinks: this.seenLinks.size,
         cacheFile: this.cacheFile 
@@ -68,7 +70,9 @@ export class NewsCache {
   markAsSeen(link: string): void {
     if (this.isNew(link)) {
       this.seenLinks.add(link);
-      logger.debug('Link marcado como visto', { link });
+      this.hasChanges = true;
+      this.saveCache();
+      logger.debug('Link marcado como visto e cache salvo', { link });
     }
   }
 
@@ -82,7 +86,9 @@ export class NewsCache {
     });
     
     if (newLinksCount > 0) {
-      logger.info('Múltiplos links marcados como vistos', { 
+      this.hasChanges = true;
+      this.saveCache();
+      logger.info('Múltiplos links marcados como vistos e cache salvo', { 
         newLinks: newLinksCount,
         totalLinks: links.length 
       });
@@ -100,11 +106,14 @@ export class NewsCache {
   }
 
   persist(): void {
-    this.saveCache();
+    if (this.hasChanges) {
+      this.saveCache();
+    }
   }
 
   clear(): void {
     this.seenLinks.clear();
+    this.hasChanges = true;
     this.saveCache();
     logger.info('Cache limpo completamente');
   }
@@ -131,6 +140,7 @@ export class NewsCache {
         logger.info('Arquivo de cache não existe', { cacheFile: this.cacheFile });
       }
       this.seenLinks.clear();
+      this.hasChanges = false;
     } catch (error) {
       logger.error('Erro ao remover arquivo de cache', { 
         error: (error as Error).message,

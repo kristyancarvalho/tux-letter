@@ -2,10 +2,15 @@ import * as cheerio from 'cheerio';
 import { logger } from '../utils/logger';
 import { Item } from '../types';
 import { BaseScraper } from './base';
+import { NewsCache } from '../utils/cache';
 
 export class LoreScraper extends BaseScraper {
   private baseUrl = 'https://lore.kernel.org';
   private botVerificationCount = 0;
+
+  constructor(sharedCache?: NewsCache) {
+    super(sharedCache);
+  }
 
   async scrape(): Promise<Item[]> {
     const url = `${this.baseUrl}/lkml/`;
@@ -58,6 +63,10 @@ export class LoreScraper extends BaseScraper {
         const linkData = messageLinks.find(link => link.href === href);
         if (!linkData) continue;
 
+        if (!this.cache.isNew(href)) continue;
+
+        this.cache.markAsSeen(href);
+
         const item: Item = {
           type: linkData.title.includes('[PATCH]') ? 'patch' : 'inbox',
           title: linkData.title,
@@ -82,7 +91,6 @@ export class LoreScraper extends BaseScraper {
           item.date = date || item.date;
           item.body = bodyText || 'Conteúdo não disponível';
 
-          this.cache.markAsSeen(href);
           items.push(item);
 
           logger.info('Mensagem processada do lore.kernel.org', {

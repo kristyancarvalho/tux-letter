@@ -2,9 +2,14 @@ import * as cheerio from 'cheerio';
 import { logger } from '../utils/logger';
 import { Item } from '../types';
 import { BaseScraper } from './base';
+import { NewsCache } from '../utils/cache';
 
 export class PhoronixScraper extends BaseScraper {
   private baseUrl = 'https://www.phoronix.com';
+
+  constructor(sharedCache?: NewsCache) {
+    super(sharedCache);
+  }
 
   async scrape(): Promise<Item[]> {
     const url = this.baseUrl;
@@ -42,43 +47,9 @@ export class PhoronixScraper extends BaseScraper {
         const linkData = newsLinks.find(link => link.href === href);
         if (!linkData) continue;
 
-        const item: Item = {
-          type: 'news',
-          title: linkData.title,
-          author: 'Phoronix',
-          date: 'Desconhecida',
-          body: '',
-          link: href
-        };
-
-        try {
-          await this.delay(1000);
-          const newsHtml = await this.fetchPage(href);
-          const $news = cheerio.load(newsHtml);
-
-          const title = $news('h1').first().text().trim();
-          const author = $news('.author, .byline, [class*="author"]').first().text().trim();
-          const date = $news('.date, .published, time, [datetime]').first().text().trim();
-          const bodyText = $news('article p, .content p').map((i, p) => $(p).text().trim()).get().join(' ');
-
-          item.title = title || item.title;
-          item.author = author || item.author;
-          item.date = date || item.date;
-          item.body = bodyText || 'Conteúdo não disponível';
-
-          this.cache.markAsSeen(href);
+        const item = await this.processNewsItem(href, linkData, 'Phoronix');
+        if (item) {
           items.push(item);
-
-          logger.info('Notícia processada do Phoronix', {
-            title: item.title.substring(0, 50),
-            author: item.author
-          });
-
-        } catch (error) {
-          logger.error('Erro ao processar notícia do Phoronix', {
-            url: href,
-            error: (error as Error).message
-          });
         }
       }
 

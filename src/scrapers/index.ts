@@ -14,10 +14,10 @@ export class ScraperManager {
     this.cache = new NewsCache();
     this.scrapers = new Map<string, BaseScraper>();
     
-    this.scrapers.set('lore', new LoreScraper());
-    this.scrapers.set('phoronix', new PhoronixScraper());
-    this.scrapers.set('linuxcom', new LinuxComScraper());
-    this.scrapers.set('itsfoss', new ItsFossScraper());
+    this.scrapers.set('lore', new LoreScraper(this.cache));
+    this.scrapers.set('phoronix', new PhoronixScraper(this.cache));
+    this.scrapers.set('linuxcom', new LinuxComScraper(this.cache));
+    this.scrapers.set('itsfoss', new ItsFossScraper(this.cache));
   }
 
   async scrapeAll(): Promise<Item[]> {
@@ -56,6 +56,8 @@ export class ScraperManager {
       uniqueItems: uniqueItems.length
     });
 
+    this.cache.persist();
+
     return uniqueItems;
   }
 
@@ -79,6 +81,7 @@ export class ScraperManager {
       }
     }
 
+    this.cache.persist();
     return this.removeDuplicates(allItems);
   }
 

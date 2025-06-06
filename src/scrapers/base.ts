@@ -8,8 +8,8 @@ export abstract class BaseScraper {
   protected cache: NewsCache;
   protected maxItems: number = 5;
 
-  constructor() {
-    this.cache = new NewsCache();
+  constructor(sharedCache?: NewsCache) {
+    this.cache = sharedCache || new NewsCache();
   }
 
   protected async fetchPage(url: string): Promise<string> {
@@ -41,6 +41,58 @@ export abstract class BaseScraper {
       new: newLinks,
       cached: uniqueLinks - newLinks
     });
+  }
+
+  protected async processNewsItem(href: string, linkData: any, defaultAuthor: string): Promise<Item | null> {
+    if (!this.cache.isNew(href)) {
+      return null;
+    }
+
+    this.cache.markAsSeen(href);
+
+    const item: Item = {
+      type: 'news',
+      title: linkData.title,
+      author: defaultAuthor,
+      date: 'Desconhecida',
+      body: '',
+      link: href
+    };
+
+    try {
+      await this.delay(1000);
+      const newsHtml = await this.fetchPage(href);
+      const $news = cheerio.load(newsHtml);
+
+      const title = $news('h1, .post-title, .entry-title').first().text().trim();
+      const author = $news('.author-name, .byline, [rel="author"], .author, [class*="author"]').first().text().trim();
+      const date = $news('.published-date, .post-date, time, .published, .date, [datetime]').first().text().trim() ||
+                  $news('time[datetime]').first().attr('datetime');
+      const bodyText = $news('article p, .post-content p, .entry-content p, .content p')
+                      .map((i, p) => $news(p).text().trim())
+                      .get()
+                      .filter(text => text.length > 20)
+                      .join(' ');
+                      
+      item.title = title || item.title;
+      item.author = author || item.author;
+      item.date = date || item.date;
+      item.body = bodyText || 'Conteúdo não disponível';
+
+      logger.info(`Notícia processada de ${defaultAuthor}`, {
+        title: item.title.substring(0, 50),
+        author: item.author
+      });
+
+      return item;
+
+    } catch (error) {
+      logger.error(`Erro ao processar notícia de ${defaultAuthor}`, {
+        url: href,
+        error: (error as Error).message
+      });
+      return null;
+    }
   }
 
   abstract scrape(): Promise<Item[]>;
