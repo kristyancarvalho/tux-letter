@@ -1,10 +1,10 @@
 
 ### 1. Detecção de Novas Notícias
-- [ ] Implementar lógica para detectar novas notícias
+- [x] Implementar lógica para detectar novas notícias
 
 ### 2. Agendamento
-- [ ] Implementar cron job ou scheduler
-- [ ] Definir frequência de execução
+- [x] Implementar cron job ou scheduler
+- [x] Definir frequência de execução
 
 ### 3. Configuração de Email
 - [x] Configurar serviço de email (Nodemailer)
