@@ -188,9 +188,9 @@ INSTRUÇÕES PARA A NEWSLETTER:
 ## EXEMPLO DE ESTRUTURA:
 
 \`\`\`markdown
-# 🐧 Destaques da Semana
+# 🐧 Destaques das últimas 24 horas
 
-Bem-vindos à mais nova edição da Tux Letter! Esta semana trouxe desenvolvimentos significativos...
+Bem-vindos à mais nova edição da Tux Letter! O último dia trouxe desenvolvimentos significativos...
 
 ## 🔧 Desenvolvimento do Kernel Linux
 
