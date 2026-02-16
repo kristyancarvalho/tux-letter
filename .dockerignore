@@ -1,0 +1,4 @@
+.git
+.env
+*.log
+github.com/kristyancarvalho/tux-letter.db
