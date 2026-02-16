@@ -2,6 +2,6 @@
 /logs
 /dist
 /cache
-
+*.db
 .env
 
