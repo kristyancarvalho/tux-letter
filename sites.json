@@ -48,5 +48,10 @@
     "name": "Slashdot",
     "url": "https://slashdot.org",
     "selector": "span.story-title a"
+  },
+    {
+    "name": "Hacker News",
+    "url": "https://news.ycombinator.com",
+    "selector": "span.titleline a"
   }
 ]
