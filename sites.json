@@ -49,9 +49,19 @@
     "url": "https://slashdot.org",
     "selector": "span.story-title a"
   },
-    {
+  {
     "name": "Hacker News",
     "url": "https://news.ycombinator.com",
     "selector": "span.titleline a"
+  },
+  {
+    "name": "Arch Linux News Archives",
+    "url": "https://archlinux.org/news",
+    "selector": "td.wrap a"
+  },
+  {
+    "name": "Arch Wiki News",
+    "url": "https://wiki.archlinux.org/title/ArchWiki:News_(Portugu%C3%AAs)",
+    "selector": "div.mw-content-ltr"
   }
 ]
