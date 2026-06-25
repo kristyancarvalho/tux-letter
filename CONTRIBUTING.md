@@ -1,6 +1,6 @@
 # Contributing to tux-letter
 
-`tux-letter` uses an issue-driven workflow with `dev` as the integration branch and `main` as the stable release branch.
+`tux-letter` uses an issue-driven workflow with `dev` as the integration branch and `release` as the stable, default branch.
 
 The current rewrite target is:
 
@@ -26,7 +26,7 @@ Use this workflow:
 6. Re-run validation on `dev`.
 7. Push only `dev`.
 
-Do not commit directly to `main`.
+Do not commit directly to `release`.
 
 Do not push staging branches unless the repository owner explicitly asks for it.
 
@@ -396,8 +396,8 @@ Recommended badges:
 The CI workflow must run on:
 
 * pushes to `dev`;
-* pushes to `main`;
-* pull requests targeting `dev` or `main`.
+* pushes to `release`;
+* pull requests targeting `dev` or `release`.
 
 Required checks:
 
@@ -412,15 +412,15 @@ Coverage should be generated when practical.
 
 ## Releases
 
-Releases are created from `main`.
+Releases are created from `release`.
 
 Release flow:
 
 1. Finish all milestone issues.
 2. Validate `dev`.
-3. Merge `dev` into `main`.
+3. Merge `dev` into `release`.
 4. Run release validation.
-5. Tag from `main`.
+5. Tag from `release`.
 6. Push the tag.
 7. Let GitHub Actions build release assets.
 8. Validate generated binaries.

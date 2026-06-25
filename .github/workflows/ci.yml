@@ -4,14 +4,14 @@ on:
   push:
     branches:
       - dev
-      - main
+      - release
   pull_request:
 
 permissions:
   contents: read
 
 jobs:
-  go:
+  build-test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,16 +24,20 @@ jobs:
           cache: true
 
       - name: Check formatting
-        shell: bash
-        run: |
-          gofmt -w .
-          git diff --exit-code
+        run: make fmt-check
 
       - name: Vet
-        run: go vet ./...
+        run: make lint
 
-      - name: Test
-        run: go test ./...
+      - name: Test with coverage
+        run: make coverage
 
       - name: Build
-        run: go build ./...
+        run: make build
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.txt
+          if-no-files-found: warn

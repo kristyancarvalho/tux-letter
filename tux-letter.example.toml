@@ -1,0 +1,49 @@
+[app]
+timezone = "America/Sao_Paulo"
+schedule = "20:00"
+run_on_start = false
+log_level = "info"
+
+[state]
+dir = "~/.local/state/tux-letter"
+max_seen_articles = 1000
+
+[fetch]
+timeout = "15s"
+user_agent = "tux-letter/3.0 (+https://github.com/kristyancarvalho/tux-letter)"
+max_articles_per_source = 8
+max_total_articles = 25
+
+[openrouter]
+api_key_env = "OPENROUTER_API_KEY"
+base_url = "https://openrouter.ai/api/v1"
+models = [
+  "openai/gpt-4o-mini",
+  "anthropic/claude-3.5-haiku",
+  "google/gemini-flash-1.5",
+]
+
+[newsletter]
+language = "en"
+tone = "natural, concise, technical, friendly"
+title = "Tux Letter"
+include_links = true
+include_sources = true
+
+[email]
+enabled = false
+from_env = "TUX_LETTER_EMAIL_FROM"
+to_env = "TUX_LETTER_EMAIL_TO"
+smtp_host_env = "TUX_LETTER_SMTP_HOST"
+smtp_port_env = "TUX_LETTER_SMTP_PORT"
+smtp_user_env = "TUX_LETTER_SMTP_USER"
+smtp_pass_env = "TUX_LETTER_SMTP_PASS"
+
+[sources]
+urls = [
+  "https://9to5linux.com",
+  "https://www.linux.com",
+  "https://itsfoss.com",
+  "https://archlinux.org/news",
+  "https://lwn.net",
+]

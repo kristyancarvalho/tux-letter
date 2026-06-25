@@ -1,0 +1,15 @@
+pkgbase = tux-letter
+	pkgdesc = AI-assisted Linux and open-source newsletter service
+	pkgver = 3.0.0
+	pkgrel = 1
+	url = https://github.com/kristyancarvalho/tux-letter
+	arch = x86_64
+	arch = aarch64
+	license = MIT
+	makedepends = go
+	options = !debug
+	options = !lto
+	source = tux-letter-3.0.0.tar.gz::https://github.com/kristyancarvalho/tux-letter/archive/refs/tags/v3.0.0.tar.gz
+	sha256sums = SKIP
+
+pkgname = tux-letter
