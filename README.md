@@ -6,9 +6,11 @@
 [![Go version](https://img.shields.io/github/go-mod/go-version/kristyancarvalho/tux-letter)](go.mod)
 [![Latest release](https://img.shields.io/github/v/release/kristyancarvalho/tux-letter)](https://github.com/kristyancarvalho/tux-letter/releases)
 [![AUR](https://img.shields.io/aur/version/tux-letter)](https://aur.archlinux.org/packages/tux-letter)
-[![Active milestone](https://img.shields.io/badge/milestone-Release%203.0-2563eb)](https://github.com/kristyancarvalho/tux-letter/milestones)
+[![Active milestone](https://img.shields.io/badge/milestone-Release%203.1-2563eb)](https://github.com/kristyancarvalho/tux-letter/milestones)
 
-A lightweight, single-binary newsletter service for Linux and open-source news. Tux Letter collects articles from the websites you list, discovers their feeds, summarizes the day with an OpenRouter-compatible model and delivers a readable digest by email.
+A lightweight, single-binary newsletter service for Linux and open-source news. Tux Letter collects articles from the websites you list, discovers their feeds, reads the full source articles, and synthesizes them into a single AI-written newsletter article delivered by email.
+
+Tux Letter generates a single AI-written newsletter article synthesized from multiple Linux/open-source sources, with inline references and a source footer. It reads like an editorial intelligence dispatch rather than a feed of separate article cards.
 
 Tux Letter renders a lightweight **cypherpunk-inspired** email digest — a terminal-styled, encrypted-bulletin look that stays comfortable to read in normal email clients.
 
@@ -17,7 +19,9 @@ Tux Letter renders a lightweight **cypherpunk-inspired** email digest — a term
 - Single Go binary, no database, no Docker required
 - URL-only source configuration — no per-site CSS selectors
 - RSS/Atom feed discovery with a generic HTML fallback
-- OpenRouter AI summarization with model fallback
+- Full article content extraction before summarization
+- One cohesive AI article with inline numeric citations and a source footer
+- OpenRouter synthesis with model fallback and a deterministic non-AI fallback digest
 - Cypherpunk HTML email + plain-text fallback
 - One-shot and scheduled service modes
 - Local atomic state for deduplication
@@ -51,6 +55,16 @@ Preview the email identity without sending anything:
 ```sh
 tux-letter preview --output preview.html
 ```
+
+## Newsletter structure
+
+Each issue is one cohesive article, not a list of per-source cards. Tux Letter
+reads the full content of the selected articles, sends a structured source bundle
+to OpenRouter, and asks for a single editorial article that groups related
+developments. Sources are cited inline as `[1]`, `[2]`, `[3]` and listed in a
+matching footer with their URLs. If OpenRouter is unavailable, a deterministic
+fallback still produces one article-like digest with the same inline references
+and source footer.
 
 ## Configuration
 
