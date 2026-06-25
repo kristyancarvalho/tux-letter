@@ -112,5 +112,20 @@ func (a Article) ValidateAgainst(bundle SourceBundle) error {
 			return fmt.Errorf("citation [%d] does not match any provided source", id)
 		}
 	}
+	if !isEnglishCode(bundle.Language) && looksEnglish(a.languageSample()) {
+		return fmt.Errorf("output language does not match configured language %q", bundle.Language)
+	}
 	return nil
+}
+
+func (a Article) languageSample() string {
+	var b strings.Builder
+	b.WriteString(a.Title + " " + a.Subtitle + " " + a.Summary + " ")
+	for _, sec := range a.Body {
+		b.WriteString(sec.Heading + " ")
+		for _, p := range sec.Paragraphs {
+			b.WriteString(p + " ")
+		}
+	}
+	return b.String()
 }

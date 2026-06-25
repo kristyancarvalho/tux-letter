@@ -29,6 +29,7 @@ func (a *App) toNewsletter(art ai.Article, at time.Time) render.Newsletter {
 
 	return render.Newsletter{
 		Brand:       brand,
+		Language:    a.cfg.Newsletter.Language,
 		Title:       art.Title,
 		Subtitle:    art.Subtitle,
 		Summary:     art.Summary,

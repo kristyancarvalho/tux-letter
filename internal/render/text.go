@@ -15,14 +15,15 @@ func RenderText(n Newsletter) (string, error) {
 	if headline == "" {
 		headline = brand
 	}
+	loc := localeFor(n.Language)
 
 	var b strings.Builder
 	rule := strings.Repeat("=", 60)
 
 	b.WriteString(rule + "\n")
 	b.WriteString("  " + strings.ToUpper(brand) + "\n")
-	b.WriteString("  " + Tagline + "\n")
-	b.WriteString("  " + SubTagline + "\n")
+	b.WriteString("  " + loc.tagline + "\n")
+	b.WriteString("  " + loc.subTagline + "\n")
 	b.WriteString(rule + "\n\n")
 
 	b.WriteString(headline + "\n")
@@ -32,12 +33,12 @@ func RenderText(n Newsletter) (string, error) {
 	b.WriteString("\n")
 
 	if s := strings.TrimSpace(n.Summary); s != "" {
-		b.WriteString("// BRIEFING\n")
+		b.WriteString("// " + strings.ToUpper(loc.briefing) + "\n")
 		b.WriteString(wrap(s, 72) + "\n\n")
 	}
 
 	if len(n.Sections) == 0 {
-		b.WriteString("No dispatch content in this cycle.\n\n")
+		b.WriteString(loc.emptyBody + "\n\n")
 	}
 	for _, sec := range n.Sections {
 		if h := strings.TrimSpace(sec.Heading); h != "" {
@@ -52,7 +53,7 @@ func RenderText(n Newsletter) (string, error) {
 	}
 
 	if len(n.References) > 0 {
-		b.WriteString("SOURCES\n")
+		b.WriteString(strings.ToUpper(loc.sources) + "\n")
 		for _, r := range n.References {
 			line := fmt.Sprintf("[%d] %s", r.ID, strings.TrimSpace(r.Title))
 			if src := strings.TrimSpace(r.Source); src != "" {
@@ -71,10 +72,10 @@ func RenderText(n Newsletter) (string, error) {
 	if !n.GeneratedAt.IsZero() {
 		stamp = n.GeneratedAt.UTC().Format(time.RFC1123)
 	}
-	b.WriteString(fmt.Sprintf("tux-letter // %d sources\n", len(n.References)))
-	b.WriteString("generated " + stamp + "\n")
+	b.WriteString(fmt.Sprintf("tux-letter // %d %s\n", len(n.References), loc.sourcesWord))
+	b.WriteString(loc.generated + " " + stamp + "\n")
 	b.WriteString(RepositoryURL + "\n")
-	b.WriteString("generated locally by tux-letter\n")
+	b.WriteString(loc.generatedBy + "\n")
 
 	return b.String(), nil
 }
