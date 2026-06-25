@@ -6,7 +6,7 @@
 [![Go version](https://img.shields.io/github/go-mod/go-version/kristyancarvalho/tux-letter)](go.mod)
 [![Latest release](https://img.shields.io/github/v/release/kristyancarvalho/tux-letter)](https://github.com/kristyancarvalho/tux-letter/releases)
 [![AUR](https://img.shields.io/aur/version/tux-letter)](https://aur.archlinux.org/packages/tux-letter)
-[![Active milestone](https://img.shields.io/badge/milestone-Release%203.1-2563eb)](https://github.com/kristyancarvalho/tux-letter/milestones)
+[![Active milestone](https://img.shields.io/badge/milestone-Release%203.1.1-2563eb)](https://github.com/kristyancarvalho/tux-letter/milestones)
 
 A lightweight, single-binary newsletter service for Linux and open-source news. Tux Letter collects articles from the websites you list, discovers their feeds, reads the full source articles, and synthesizes them into a single AI-written newsletter article delivered by email.
 
@@ -65,6 +65,10 @@ developments. Sources are cited inline as `[1]`, `[2]`, `[3]` and listed in a
 matching footer with their URLs. If OpenRouter is unavailable, a deterministic
 fallback still produces one article-like digest with the same inline references
 and source footer.
+
+The whole issue follows `newsletter.language` — set `language = "pt-BR"` and the
+article, section headings, summary, source labels and identity strings are
+written in Brazilian Portuguese.
 
 ## Configuration
 

@@ -1,5 +1,45 @@
 # Release Notes
 
+## v3.1.1
+
+A quality patch for the generated newsletter.
+
+### Fixed
+
+- The newsletter now always follows the configured `newsletter.language`. With
+  `language = "pt-BR"` the article, headings, summary, identity strings, source
+  labels and the non-AI fallback are written in Brazilian Portuguese instead of
+  defaulting to English.
+- Synthesis is deeper: the prompt now demands concrete technical detail,
+  practical context and connected stories, so each issue reads like an editorial
+  dispatch rather than a shallow roundup of titles.
+
+### Changed
+
+- The AI request uses a synthesis-appropriate timeout instead of reusing the
+  short article-fetch timeout.
+- The documented default OpenRouter models lead with a stronger synthesis model,
+  keeping smaller models as fallbacks.
+
+### Added
+
+- Output-language validation: when a non-English language is configured, clearly
+  English output is rejected and a stricter repair attempt is made before the
+  deterministic fallback.
+
+### Compatibility
+
+- The configuration schema is unchanged. Existing config files keep working and
+  no new fields are required.
+
+### Validation
+
+- `make fmt`
+- `make test`
+- `make lint`
+- `make build`
+- `make release-check`
+
 ## v3.1.0
 
 Tux Letter now produces a single, cohesive newsletter article instead of a list
