@@ -48,7 +48,7 @@ release-check: fmt-check lint test build
 	@echo "release-check passed"
 
 release-source-archive:
-	@scripts/release/source-archive.sh $(VERSION)
+	@scripts/release/source-archive.sh $(VERSION) HEAD dist
 
 aur-srcinfo:
 	cd packaging/aur && makepkg --printsrcinfo > .SRCINFO

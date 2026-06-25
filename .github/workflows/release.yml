@@ -124,11 +124,19 @@ jobs:
       - build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - name: Download release archives
         uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
+
+      - name: Generate source archive
+        shell: bash
+        run: scripts/release/source-archive.sh "${{ needs.validate.outputs.version }}" "$GITHUB_SHA" dist
 
       - name: Generate checksums
         shell: bash
@@ -143,6 +151,13 @@ jobs:
         with:
           name: tux-letter-checksums
           path: dist/checksums.txt
+          if-no-files-found: error
+
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: tux-letter-source
+          path: dist/tux-letter-${{ needs.validate.outputs.version }}-src.tar.gz
           if-no-files-found: error
 
   release:
