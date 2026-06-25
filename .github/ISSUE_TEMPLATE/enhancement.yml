@@ -1,7 +1,7 @@
 name: Feature suggestion
 description: Suggest a feature or improvement
 title: "feat: "
-labels: ["enhancement"]
+labels: ["type:feature"]
 body:
   - type: dropdown
     id: area
@@ -9,17 +9,15 @@ body:
       label: Area
       description: Which part of the project should be improved?
       options:
-        - aur rpc
-        - package sources
-        - ranking
-        - search
-        - tui
-        - keyboard input
-        - mouse input
-        - clipboard
-        - history
+        - architecture
         - config
-        - themes
+        - scraper
+        - ai
+        - newsletter
+        - service
+        - mail
+        - state
+        - aur
         - docs
         - ci
         - other
@@ -71,10 +69,10 @@ body:
       placeholder: Add any extra context here.
 
   - type: checkboxes
-    id: readonly
+    id: safety
     attributes:
-      label: Read-only safety
-      description: aurview must remain a metadata-only package discovery tool.
+      label: Safety
+      description: Confirm this proposal keeps secrets out of the repository.
       options:
-        - label: This proposal does not add install, download, clone, build, update or remove behavior.
+        - label: This proposal does not require committing API keys, SMTP passwords or private email addresses.
           required: true
