@@ -1,85 +1,152 @@
 package main
 
 import (
+	"context"
+	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/kristyancarvalho/tux-letter/internal/ai"
-	"github.com/kristyancarvalho/tux-letter/internal/database"
-	"github.com/kristyancarvalho/tux-letter/internal/email"
-	"github.com/kristyancarvalho/tux-letter/internal/scraper"
-
-	"github.com/joho/godotenv"
-	"github.com/robfig/cron/v3"
+	"github.com/kristyancarvalho/tux-letter/internal/app"
+	"github.com/kristyancarvalho/tux-letter/internal/config"
+	"github.com/kristyancarvalho/tux-letter/internal/version"
 )
 
+const usage = `tux-letter - AI-assisted Linux and open-source newsletter
+
+Usage:
+  tux-letter <command> [flags]
+
+Commands:
+  once              Run one collection/summarization/delivery job and exit
+  serve             Run as a scheduled background service
+  validate-config   Load and validate the configuration file
+  sources test      Fetch sources and show discovery results (no AI, no email)
+
+Flags:
+  --config <path>   Path to a TOML or JSON config file
+  --version         Print version metadata
+  -h, --help        Show this help
+`
+
 func main() {
-	godotenv.Load()
-
-	dbPath := getEnv("DB_PATH", "./data/tux-letter.db")
-	if err := database.Init(dbPath); err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
-	}
-
-	cronSchedule := getEnv("CRON_SCHEDULE", "0 20 * * *")
-
-	c := cron.New()
-	c.AddFunc(cronSchedule, runJob)
-
-	fmt.Printf("Tux Letter started. Schedule: %s\n", cronSchedule)
-	fmt.Println("Press Ctrl+C to stop")
-
-	runJob()
-
-	c.Start()
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	fmt.Println("\nShutting down gracefully...")
-	c.Stop()
+	os.Exit(run(os.Args[1:]))
 }
 
-func runJob() {
-	fmt.Println("\n=== Starting scraping job ===")
+func run(args []string) int {
+	fs := flag.NewFlagSet("tux-letter", flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+	configPath := fs.String("config", "", "path to config file")
+	showVersion := fs.Bool("version", false, "print version metadata")
+	fs.Usage = func() { fmt.Fprint(os.Stderr, usage) }
 
-	news, err := scraper.ScrapeAll("sites.json")
-	if err != nil {
-		log.Printf("Scraping error: %v", err)
-		return
+	command, rest := splitCommand(args)
+
+	if err := fs.Parse(rest); err != nil {
+		return 2
 	}
 
-	if len(news) == 0 {
-		fmt.Println("No new articles found")
-		return
+	if *showVersion || command == "version" {
+		fmt.Println(version.String())
+		return 0
 	}
 
-	fmt.Printf("Found %d new articles\n", len(news))
-
-	fmt.Println("Synthesizing news with AI...")
-	synthesized, err := ai.SynthesizeNews(news)
-	if err != nil {
-		log.Printf("AI synthesis error: %v", err)
-		return
+	switch command {
+	case "", "help", "-h", "--help":
+		fmt.Print(usage)
+		return 0
+	case "once":
+		return runWithConfig(*configPath, func(a *app.App, ctx context.Context) error {
+			return a.Once(ctx)
+		})
+	case "serve":
+		return runWithConfig(*configPath, func(a *app.App, ctx context.Context) error {
+			return a.Serve(ctx)
+		})
+	case "validate-config":
+		return runValidate(*configPath)
+	case "sources test":
+		return runWithConfig(*configPath, func(a *app.App, ctx context.Context) error {
+			return a.SourcesTest(ctx)
+		})
+	case "sources":
+		fmt.Fprintln(os.Stderr, "usage: tux-letter sources test")
+		return 2
+	default:
+		fmt.Fprintf(os.Stderr, "unknown command: %s\n\n%s", command, usage)
+		return 2
 	}
-
-	fmt.Println("Sending email...")
-	if err := email.SendNews(synthesized); err != nil {
-		log.Printf("Email error: %v", err)
-		return
-	}
-
-	fmt.Println("✅ Email sent successfully")
-	fmt.Println("=== Job completed ===")
 }
 
-func getEnv(key, fallback string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
+func splitCommand(args []string) (string, []string) {
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		if a == "sources" && i+1 < len(args) && args[i+1] == "test" {
+			rest := append([]string{}, args[:i]...)
+			rest = append(rest, args[i+2:]...)
+			return "sources test", rest
+		}
+		if takesValue(a) {
+			i++
+			continue
+		}
+		if len(a) > 0 && a[0] != '-' {
+			rest := append([]string{}, args[:i]...)
+			rest = append(rest, args[i+1:]...)
+			return a, rest
+		}
 	}
-	return fallback
+	return "", args
+}
+
+func takesValue(arg string) bool {
+	return arg == "--config" || arg == "-config"
+}
+
+func loadConfig(path string) (config.Config, error) {
+	cfg, used, err := config.Load(path)
+	if err != nil {
+		return cfg, err
+	}
+	if used != "" {
+		fmt.Fprintf(os.Stderr, "using config: %s\n", used)
+	}
+	return cfg, nil
+}
+
+func runValidate(path string) int {
+	cfg, err := loadConfig(path)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		return 1
+	}
+	if err := cfg.Validate(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	fmt.Println("configuration is valid")
+	return 0
+}
+
+func runWithConfig(path string, fn func(*app.App, context.Context) error) int {
+	cfg, err := loadConfig(path)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		return 1
+	}
+	if err := cfg.Validate(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	a := app.New(cfg)
+	if err := fn(a, ctx); err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		return 1
+	}
+	return 0
 }

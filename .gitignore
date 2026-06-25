@@ -1,8 +1,10 @@
 /node_modules
 /logs
 /dist
+/bin
 /cache
 /data
 *.db
+coverage.txt
 .env
 /specs
