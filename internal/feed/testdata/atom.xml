@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Example Atom Feed</title>
+  <link href="https://example.org/"/>
+  <updated>2026-06-24T18:30:02Z</updated>
+  <entry>
+    <title>Wayland Improvements Landed</title>
+    <link rel="alternate" href="https://example.org/wayland"/>
+    <id>tag:example.org,2026:wayland</id>
+    <updated>2026-06-24T18:30:02Z</updated>
+    <published>2026-06-24T18:00:00Z</published>
+    <summary>Compositor performance is better.</summary>
+    <author><name>John Smith</name></author>
+  </entry>
+  <entry>
+    <title>Mesa 25 Beta</title>
+    <link rel="alternate" href="https://example.org/mesa-25"/>
+    <updated>2026-06-23T12:00:00Z</updated>
+    <content type="html">&lt;p&gt;Mesa 25 beta is available.&lt;/p&gt;</content>
+  </entry>
+</feed>
