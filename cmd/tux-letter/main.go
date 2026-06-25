@@ -23,9 +23,11 @@ Commands:
   serve             Run as a scheduled background service
   validate-config   Load and validate the configuration file
   sources test      Fetch sources and show discovery results (no AI, no email)
+  preview           Render a sample cypherpunk newsletter to HTML
 
 Flags:
   --config <path>   Path to a TOML or JSON config file
+  --output <path>   Output file for preview (defaults to stdout)
   --version         Print version metadata
   -h, --help        Show this help
 `
@@ -38,6 +40,7 @@ func run(args []string) int {
 	fs := flag.NewFlagSet("tux-letter", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	configPath := fs.String("config", "", "path to config file")
+	output := fs.String("output", "", "output path for preview")
 	showVersion := fs.Bool("version", false, "print version metadata")
 	fs.Usage = func() { fmt.Fprint(os.Stderr, usage) }
 
@@ -66,6 +69,8 @@ func run(args []string) int {
 		})
 	case "validate-config":
 		return runValidate(*configPath)
+	case "preview":
+		return runPreview(*configPath, *output)
 	case "sources test":
 		return runWithConfig(*configPath, func(a *app.App, ctx context.Context) error {
 			return a.SourcesTest(ctx)
@@ -126,6 +131,20 @@ func runValidate(path string) int {
 		return 1
 	}
 	fmt.Println("configuration is valid")
+	return 0
+}
+
+func runPreview(path, output string) int {
+	cfg, _, err := config.Load(path)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		return 1
+	}
+	a := app.New(cfg)
+	if err := a.Preview(context.Background(), output); err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		return 1
+	}
 	return 0
 }
 
