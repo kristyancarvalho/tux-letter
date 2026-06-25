@@ -2,10 +2,10 @@
 
 `tux-letter` uses an issue-driven workflow with `dev` as the integration branch and `release` as the stable, default branch.
 
-The current rewrite target is:
+The current release target is:
 
 ```text
-v3.0.0
+v3.0.1
 ```
 
 GitHub milestone:
@@ -437,8 +437,8 @@ The release workflow must generate downloadable binaries and checksums.
 Minimum release artifacts:
 
 ```text
-tux-letter_3.0.0_linux_amd64.tar.gz
-tux-letter_3.0.0_linux_arm64.tar.gz
+tux-letter_3.0.1_linux_amd64.tar.gz
+tux-letter_3.0.1_linux_arm64.tar.gz
 checksums.txt
 ```
 
@@ -502,4 +502,3 @@ Before opening or merging a PR:
 * no secrets were committed;
 * `./specs/` was not staged;
 * generated release/AUR artifacts are only committed when expected.
-

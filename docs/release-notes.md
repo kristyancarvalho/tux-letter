@@ -1,5 +1,38 @@
 # Release Notes
 
+## v3.0.1
+
+### Changed
+
+- Prepare patch release metadata after `v3.0.0`.
+- Add a project changelog for release summaries.
+- Add a deterministic source archive helper for release packaging.
+- Publish a source archive from the release workflow for downstream source
+  packages.
+- Correct GitHub issue templates so new issues use tux-letter areas and
+  secret-safety language.
+
+### Fixed
+
+- Replace the broken `release-source-archive` Makefile target with a working
+  archive generator.
+
+### Packaging
+
+- Update AUR metadata for `pkgver=3.0.1`.
+- Switch the AUR package source to the GitHub Release source archive so the
+  package can pin a stable checksum without relying on GitHub's generated tag
+  archives.
+- Keep Docker and OpenRouter credentials out of the AUR install path; the
+  package builds from source and installs only the `tux-letter` binary and
+  documentation.
+
+### Validation
+
+- `make test`
+- `make build`
+- `make release-check`
+
 ## v3.0.0
 
 Tux Letter 3.0 is a full rewrite into a lightweight, single Go binary with no

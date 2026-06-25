@@ -1,7 +1,7 @@
 name: Bug report
-description: Report a problem in aurview
+description: Report a problem in tux-letter
 title: "bug: "
-labels: ["bug"]
+labels: ["type:fix"]
 body:
   - type: dropdown
     id: area
@@ -9,17 +9,15 @@ body:
       label: Area
       description: Which part of the project is affected?
       options:
-        - aur rpc
-        - package sources
-        - ranking
-        - search
-        - tui
-        - keyboard input
-        - mouse input
-        - clipboard
-        - history
+        - architecture
         - config
-        - themes
+        - scraper
+        - ai
+        - newsletter
+        - service
+        - mail
+        - state
+        - aur
         - docs
         - ci
         - other
@@ -79,16 +77,15 @@ body:
       description: Share relevant environment details.
       placeholder: |
         OS:
-        Terminal:
-        aurview version / commit:
+        tux-letter version / commit:
         Go version:
         Config:
 
   - type: checkboxes
-    id: readonly
+    id: safety
     attributes:
-      label: Read-only safety
-      description: Confirm this report does not request package installation or execution behavior.
+      label: Safety
+      description: Confirm this report does not include secrets.
       options:
-        - label: This issue is about search, inspection, display, history, metadata, config or clipboard behavior only.
+        - label: I have not included API keys, SMTP passwords or private email addresses.
           required: true

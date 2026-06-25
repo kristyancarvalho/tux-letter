@@ -1,7 +1,7 @@
 name: Task / Improvement
 description: Track refactors, improvements, and technical tasks
 title: "chore: "
-labels: ["task"]
+labels: ["type:docs"]
 body:
   - type: dropdown
     id: area
@@ -9,17 +9,15 @@ body:
       label: Area
       description: Which part of the project is affected?
       options:
-        - aur rpc
-        - package sources
-        - ranking
-        - search
-        - tui
-        - keyboard input
-        - mouse input
-        - clipboard
-        - history
+        - architecture
         - config
-        - themes
+        - scraper
+        - ai
+        - newsletter
+        - service
+        - mail
+        - state
+        - aur
         - docs
         - ci
         - other
@@ -64,10 +62,10 @@ body:
       placeholder: Add any extra context here.
 
   - type: checkboxes
-    id: readonly
+    id: safety
     attributes:
-      label: Read-only safety
-      description: aurview does not manage packages.
+      label: Safety
+      description: Confirm this task keeps secrets out of the repository.
       options:
-        - label: This task keeps aurview read-only.
+        - label: This task does not require committing API keys, SMTP passwords or private email addresses.
           required: true
