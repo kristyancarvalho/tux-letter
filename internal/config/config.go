@@ -81,9 +81,10 @@ func Default() Config {
 			APIKeyEnv: "OPENROUTER_API_KEY",
 			BaseURL:   "https://openrouter.ai/api/v1",
 			Models: []string{
+				"anthropic/claude-3.5-sonnet",
+				"openai/gpt-4o",
+				"google/gemini-pro-1.5",
 				"openai/gpt-4o-mini",
-				"anthropic/claude-3.5-haiku",
-				"google/gemini-flash-1.5",
 			},
 		},
 		Newsletter: NewsletterConfig{
