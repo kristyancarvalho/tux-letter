@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.1.1
+
+- Always generate the newsletter in the configured language (e.g. `pt-BR`),
+  including headings, summary, identity strings and the non-AI fallback.
+- Reject and retry clearly wrong-language AI output before falling back.
+- Deepen synthesis: require concrete technical detail, practical context and
+  connected stories instead of a shallow roundup.
+- Use a synthesis-appropriate AI request timeout and stronger default models.
+
 ## v3.1.0
 
 - Generate one cohesive AI newsletter article instead of per-source cards.

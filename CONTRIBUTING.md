@@ -5,13 +5,13 @@
 The current release target is:
 
 ```text
-v3.1.0
+v3.1.1
 ```
 
 GitHub milestone:
 
 ```text
-Release 3.1
+Release 3.1.1
 ```
 
 ## Branching
