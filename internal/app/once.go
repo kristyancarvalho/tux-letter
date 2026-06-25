@@ -74,7 +74,7 @@ func (a *App) summarize(ctx context.Context, articles []article.Article) ai.Arti
 		logx.Warn("openrouter not configured, using non-ai fallback digest")
 		return ai.FallbackArticle(a.cfg.Newsletter, articles)
 	}
-	client := ai.NewOpenRouter(a.cfg.OpenRouter.BaseURL, apiKey, a.cfg.Fetch.Timeout.Duration())
+	client := ai.NewOpenRouter(a.cfg.OpenRouter.BaseURL, apiKey, synthesisTimeout(a.cfg.Fetch.Timeout.Duration()))
 	gen := ai.NewGenerator(client, a.cfg.OpenRouter.Models)
 	art, err := gen.Generate(ctx, a.cfg.Newsletter, articles)
 	if err != nil {
@@ -120,6 +120,15 @@ func (a *App) saveState(st *state.Store, at time.Time) {
 	if err := st.Save(); err != nil {
 		logx.Warn("could not save state", "error", err)
 	}
+}
+
+func synthesisTimeout(fetch time.Duration) time.Duration {
+	const minimum = 120 * time.Second
+	scaled := fetch * 4
+	if scaled < minimum {
+		return minimum
+	}
+	return scaled
 }
 
 func capTotal(items []article.Article, max int) []article.Article {
