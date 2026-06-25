@@ -1,7 +1,10 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -44,5 +47,19 @@ func TestRunVersion(t *testing.T) {
 func TestRunUnknownCommand(t *testing.T) {
 	if code := run([]string{"bogus"}); code != 2 {
 		t.Errorf("run bogus = %d, want 2", code)
+	}
+}
+
+func TestRunPreviewWritesHTML(t *testing.T) {
+	out := filepath.Join(t.TempDir(), "preview.html")
+	if code := run([]string{"preview", "--output", out}); code != 0 {
+		t.Fatalf("run preview = %d, want 0", code)
+	}
+	data, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatalf("read preview: %v", err)
+	}
+	if !strings.Contains(string(data), "TUX LETTER") {
+		t.Error("preview output missing identity header")
 	}
 }
