@@ -1,5 +1,44 @@
 # Release Notes
 
+## v3.1.0
+
+Tux Letter now produces a single, cohesive newsletter article instead of a list
+of per-source cards.
+
+### Changed
+
+- The newsletter is synthesized into one editorial article with inline numeric
+  references and a matching source footer, rather than one summary card per
+  source.
+- The per-article `why_it_matters` card layout is no longer part of the final
+  email.
+- The OpenRouter prompt now sends a structured source bundle and asks for one
+  unified article that groups related developments and cites sources inline.
+
+### Added
+
+- Full article content extraction (semantic `<article>`, JSON-LD article body,
+  Open Graph and main-content heuristics) before summarization, with cleanup and
+  a feed-summary fallback.
+- Validation of the AI output: it must include a title, body and sources, carry
+  inline citations, and never cite a source that was not provided. Invalid output
+  triggers one stricter repair attempt before falling back.
+- A deterministic non-AI fallback that still renders one article-like digest with
+  inline references and a source footer.
+
+### Compatibility
+
+- The configuration schema is unchanged. Existing config files keep working and
+  no new fields are required.
+
+### Validation
+
+- `make fmt`
+- `make test`
+- `make lint`
+- `make build`
+- `make release-check`
+
 ## v3.0.1
 
 ### Changed
