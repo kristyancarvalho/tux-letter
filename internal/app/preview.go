@@ -11,7 +11,9 @@ import (
 
 func (a *App) Preview(ctx context.Context, output string) error {
 	n := render.Demo()
-	n.Title = a.cfg.Newsletter.Title
+	if brand := a.cfg.Newsletter.Title; brand != "" {
+		n.Brand = brand
+	}
 
 	htmlOut, err := render.RenderHTML(n)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/kristyancarvalho/tux-letter/internal/article"
 	"github.com/kristyancarvalho/tux-letter/internal/config"
@@ -14,61 +15,101 @@ type Prompt struct {
 	User   string
 }
 
-func BuildPrompt(cfg config.NewsletterConfig, articles []article.Article) Prompt {
-	title := strings.TrimSpace(cfg.Title)
-	if title == "" {
-		title = "Tux Letter"
-	}
+const maxBundleContentRunes = 6000
+
+func BuildBundle(cfg config.NewsletterConfig, articles []article.Article) SourceBundle {
 	language := strings.TrimSpace(cfg.Language)
 	if language == "" {
 		language = "en"
 	}
-	tone := strings.TrimSpace(cfg.Tone)
-	if tone == "" {
-		tone = "natural, concise, technical, friendly"
+	style := strings.TrimSpace(cfg.Tone)
+	if style == "" {
+		style = "natural, technical, concise, editorial"
 	}
 
-	var sys strings.Builder
-	sys.WriteString("You are the editor of a Linux and open-source newsletter called ")
-	sys.WriteString(title + ".\n")
-	sys.WriteString("Write in language code: " + language + ".\n")
-	sys.WriteString("Tone: " + tone + ".\n")
-	sys.WriteString("Summarize the provided articles into a concise digest.\n")
-	sys.WriteString("Respond ONLY with a single valid JSON object, no markdown, matching this shape:\n")
-	sys.WriteString(`{"title":string,"summary":string,"items":[{"title":string,"source":string,"url":string,"summary":string,"why_it_matters":string,"tags":[string]}]}` + "\n")
-	sys.WriteString("Use only the provided article URLs. Do not invent links or facts.")
+	sources := make([]BundleSource, 0, len(articles))
+	id := 0
+	for _, a := range articles {
+		title := strings.TrimSpace(a.Title)
+		url := strings.TrimSpace(a.URL)
+		if title == "" || url == "" {
+			continue
+		}
+		id++
+		content := strings.TrimSpace(a.Content)
+		if content == "" {
+			content = strings.TrimSpace(a.Excerpt)
+		}
+		published := ""
+		if !a.Published.IsZero() {
+			published = a.Published.UTC().Format(time.RFC3339)
+		}
+		sources = append(sources, BundleSource{
+			ID:          id,
+			Source:      strings.TrimSpace(a.Source),
+			Title:       title,
+			URL:         url,
+			PublishedAt: published,
+			Content:     limitRunes(content, maxBundleContentRunes),
+		})
+	}
+	return SourceBundle{Language: language, Style: style, Sources: sources}
+}
+
+func BuildPrompt(cfg config.NewsletterConfig, bundle SourceBundle) Prompt {
+	title := strings.TrimSpace(cfg.Title)
+	if title == "" {
+		title = "Tux Letter"
+	}
+
+	payload, err := json.MarshalIndent(bundle, "", "  ")
+	if err != nil {
+		payload = []byte("{}")
+	}
 
 	var user strings.Builder
 	user.WriteString("Newsletter title: " + title + "\n")
-	user.WriteString(fmt.Sprintf("Articles (%d):\n", len(articles)))
-	for i, a := range articles {
-		user.WriteString(fmt.Sprintf("\n[%d]\n", i+1))
-		user.WriteString("title: " + a.Title + "\n")
-		if a.Source != "" {
-			user.WriteString("source: " + a.Source + "\n")
-		}
-		user.WriteString("url: " + a.URL + "\n")
-		if a.Author != "" {
-			user.WriteString("author: " + a.Author + "\n")
-		}
-		if a.Excerpt != "" {
-			user.WriteString("excerpt: " + a.Excerpt + "\n")
-		}
-	}
+	user.WriteString("Source bundle (JSON):\n")
+	user.Write(payload)
 
-	return Prompt{System: sys.String(), User: user.String()}
+	return Prompt{System: systemPrompt(title, bundle), User: user.String()}
 }
 
-func ParseDigest(raw string) (Digest, error) {
+func systemPrompt(title string, bundle SourceBundle) string {
+	var s strings.Builder
+	s.WriteString("You are the editor of a Linux and open-source intelligence newsletter called " + title + ".\n")
+	s.WriteString("Write in language code: " + bundle.Language + ".\n")
+	s.WriteString("Tone: " + bundle.Style + ".\n")
+	s.WriteString("Read ALL provided source articles in the bundle and synthesize them into ONE cohesive newsletter article.\n")
+	s.WriteString("Group related developments together and explain the broader context for the reader.\n")
+	s.WriteString("Do NOT write one mini-summary per source. Do NOT produce a list of cards. Write a flowing editorial article.\n")
+	s.WriteString("Cite sources inline using numeric markers like [1], [2], [3] wherever you use information from a source.\n")
+	s.WriteString("Use only the source ids present in the bundle. Never invent sources or cite ids that are not in the bundle.\n")
+	s.WriteString("Preserve factual uncertainty; do not overstate or fabricate details.\n")
+	s.WriteString("Respond ONLY with a single valid JSON object, no markdown, matching this shape:\n")
+	s.WriteString(`{"title":string,"subtitle":string,"summary":string,"body":[{"heading":string,"paragraphs":[string]}],"sources":[{"id":number,"title":string,"source":string,"url":string}]}` + "\n")
+	s.WriteString("Every output must contain at least one inline [n] citation in the body. The sources array must list the sources you cited, using their bundle id, title, source and url.\n")
+	return s.String()
+}
+
+func repairPrompt(p Prompt, reason error) Prompt {
+	var s strings.Builder
+	s.WriteString(p.System)
+	s.WriteString("\nThe previous response was rejected: " + reason.Error() + ".\n")
+	s.WriteString("Return ONLY a valid JSON object in the required shape, with at least one inline [n] citation that matches a provided source id, and a sources array listing the cited sources.\n")
+	return Prompt{System: s.String(), User: p.User}
+}
+
+func ParseArticle(raw string) (Article, error) {
 	jsonText := extractJSON(raw)
 	if jsonText == "" {
-		return Digest{}, fmt.Errorf("no json object found in model output")
+		return Article{}, fmt.Errorf("no json object found in model output")
 	}
-	var d Digest
-	if err := json.Unmarshal([]byte(jsonText), &d); err != nil {
-		return Digest{}, fmt.Errorf("decode digest json: %w", err)
+	var a Article
+	if err := json.Unmarshal([]byte(jsonText), &a); err != nil {
+		return Article{}, fmt.Errorf("decode article json: %w", err)
 	}
-	return d, nil
+	return a, nil
 }
 
 func extractJSON(raw string) string {
@@ -89,4 +130,12 @@ func extractJSON(raw string) string {
 		return ""
 	}
 	return raw[start : end+1]
+}
+
+func limitRunes(s string, max int) string {
+	r := []rune(s)
+	if len(r) <= max {
+		return s
+	}
+	return strings.TrimSpace(string(r[:max])) + "…"
 }
