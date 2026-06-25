@@ -76,13 +76,20 @@ func BuildPrompt(cfg config.NewsletterConfig, bundle SourceBundle) Prompt {
 }
 
 func systemPrompt(title string, bundle SourceBundle) string {
+	lang := languageName(bundle.Language)
 	var s strings.Builder
 	s.WriteString("You are the editor of a Linux and open-source intelligence newsletter called " + title + ".\n")
-	s.WriteString("Write in language code: " + bundle.Language + ".\n")
-	s.WriteString("Tone: " + bundle.Style + ".\n")
-	s.WriteString("Read ALL provided source articles in the bundle and synthesize them into ONE cohesive newsletter article.\n")
+	s.WriteString("Write the ENTIRE newsletter in " + lang + " (language tag: " + bundle.Language + ").\n")
+	s.WriteString("Every field must be written in " + lang + ": the title, subtitle, summary, every section heading and every paragraph.\n")
+	s.WriteString("Do not answer in English when another language is requested, except for unavoidable proper nouns, product names, commands or code identifiers.\n")
+	s.WriteString("Match this tone: " + bundle.Style + ".\n")
+	s.WriteString("Read ALL provided source articles in the bundle, including the content field, and synthesize them into ONE cohesive newsletter article.\n")
 	s.WriteString("Group related developments together and explain the broader context for the reader.\n")
 	s.WriteString("Do NOT write one mini-summary per source. Do NOT produce a list of cards. Write a flowing editorial article.\n")
+	s.WriteString("Go deep: include concrete technical details drawn from the source content, such as version numbers, project and component names, commands, and the specific changes that happened.\n")
+	s.WriteString("Explain why each development matters in practice for Linux users and open-source developers, woven naturally into the prose rather than stated as a separate label.\n")
+	s.WriteString("Connect related stories across sources and surface common themes; avoid generic filler such as \"the ecosystem is evolving\" without concrete detail.\n")
+	s.WriteString("Organize the article into a few focused sections (about three to six), each with a short heading and at least two substantial paragraphs.\n")
 	s.WriteString("Cite sources inline using numeric markers like [1], [2], [3] wherever you use information from a source.\n")
 	s.WriteString("Use only the source ids present in the bundle. Never invent sources or cite ids that are not in the bundle.\n")
 	s.WriteString("Preserve factual uncertainty; do not overstate or fabricate details.\n")
@@ -96,7 +103,7 @@ func repairPrompt(p Prompt, reason error) Prompt {
 	var s strings.Builder
 	s.WriteString(p.System)
 	s.WriteString("\nThe previous response was rejected: " + reason.Error() + ".\n")
-	s.WriteString("Return ONLY a valid JSON object in the required shape, with at least one inline [n] citation that matches a provided source id, and a sources array listing the cited sources.\n")
+	s.WriteString("Write the entire response in the requested language and return ONLY a valid JSON object in the required shape, with at least one inline [n] citation that matches a provided source id, and a sources array listing the cited sources.\n")
 	return Prompt{System: s.String(), User: p.User}
 }
 

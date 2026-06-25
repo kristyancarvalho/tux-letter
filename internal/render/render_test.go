@@ -175,6 +175,62 @@ func TestRenderHTMLNoSections(t *testing.T) {
 	}
 }
 
+func TestRenderHTMLLocalizedPortuguese(t *testing.T) {
+	n := sampleNewsletter()
+	n.Language = "pt-BR"
+	out, err := RenderHTML(n)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		`<html lang="pt-BR"`,
+		"// resumo",
+		"// fontes",
+		"boletim open-source cifrado",
+		"linux // foss // segurança // sistemas",
+		"gerado localmente pelo tux-letter",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("pt-BR HTML missing %q", want)
+		}
+	}
+	for _, banned := range []string{
+		"// briefing", "// sources", "generated locally by tux-letter", "encrypted open-source dispatch",
+	} {
+		if strings.Contains(out, banned) {
+			t.Errorf("pt-BR HTML must not contain English label %q", banned)
+		}
+	}
+}
+
+func TestRenderTextLocalizedPortuguese(t *testing.T) {
+	n := sampleNewsletter()
+	n.Language = "pt-BR"
+	out, err := RenderText(n)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"// RESUMO", "FONTES", "boletim open-source cifrado", "gerado localmente pelo tux-letter"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("pt-BR text missing %q", want)
+		}
+	}
+	for _, banned := range []string{"SOURCES", "// BRIEFING", "generated locally by tux-letter"} {
+		if strings.Contains(out, banned) {
+			t.Errorf("pt-BR text must not contain English label %q", banned)
+		}
+	}
+}
+
+func TestRenderEnglishLabelsUnchanged(t *testing.T) {
+	out, _ := RenderHTML(sampleNewsletter())
+	for _, want := range []string{"// briefing", "// sources", "encrypted open-source dispatch", `<html lang="en"`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("default English HTML missing %q", want)
+		}
+	}
+}
+
 func TestRenderTextUnifiedArticle(t *testing.T) {
 	out, err := RenderText(sampleNewsletter())
 	if err != nil {
