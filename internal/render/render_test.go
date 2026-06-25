@@ -8,29 +8,33 @@ import (
 
 func sampleNewsletter() Newsletter {
 	return Newsletter{
-		Title:       "Tux Letter",
-		Summary:     "A quiet week in kernel land with a few notable releases.",
+		Brand:       "Tux Letter",
+		Title:       "A Quiet Week in Kernel Land",
+		Subtitle:    "a few notable releases and one security scare",
+		Summary:     "A calm but meaningful cycle for the open-source desktop.",
 		GeneratedAt: time.Date(2026, 6, 25, 20, 0, 0, 0, time.UTC),
-		Sources:     []string{"9to5linux.com", "archlinux.org"},
-		Items: []Item{
+		Sections: []Section{
 			{
-				Title:        "Kernel 6.10 Released",
-				Source:       "9to5Linux",
-				URL:          "https://9to5linux.com/kernel-6-10",
-				Summary:      "The new kernel ships better hardware support.",
-				WhyItMatters: "Improves laptop battery life.",
-				Tags:         []string{"linux", "kernel"},
+				Heading: "kernel",
+				Paragraphs: []string{
+					"The new kernel ships broader hardware support and better power management [1].",
+				},
 			},
 			{
-				Title:  "Arch News Update",
-				Source: "Archlinux",
-				URL:    "https://archlinux.org/news/x",
+				Heading: "distro news",
+				Paragraphs: []string{
+					"Arch refreshed its guided installer, lowering the barrier for new users [2].",
+				},
 			},
+		},
+		References: []Reference{
+			{ID: 1, Title: "Kernel 6.10 Released", Source: "9to5Linux", URL: "https://9to5linux.com/kernel-6-10"},
+			{ID: 2, Title: "Arch Installer Refresh", Source: "Arch Linux", URL: "https://archlinux.org/news/installer"},
 		},
 	}
 }
 
-func TestRenderHTMLContainsCoreContent(t *testing.T) {
+func TestRenderHTMLUnifiedArticle(t *testing.T) {
 	out, err := RenderHTML(sampleNewsletter())
 	if err != nil {
 		t.Fatalf("RenderHTML: %v", err)
@@ -38,11 +42,15 @@ func TestRenderHTMLContainsCoreContent(t *testing.T) {
 	for _, want := range []string{
 		"<!DOCTYPE html>",
 		"TUX LETTER",
+		"A Quiet Week in Kernel Land",
+		"a few notable releases and one security scare",
+		"// briefing",
+		"// kernel",
+		"// distro news",
+		"broader hardware support",
+		"// sources",
 		"Kernel 6.10 Released",
-		"https://9to5linux.com/kernel-6-10",
-		"why_it_matters",
-		"#0b0f14",
-		"kernel",
+		"Arch Installer Refresh",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("HTML missing %q", want)
@@ -50,25 +58,72 @@ func TestRenderHTMLContainsCoreContent(t *testing.T) {
 	}
 }
 
+func TestRenderHTMLIncludesSourceURLs(t *testing.T) {
+	out, _ := RenderHTML(sampleNewsletter())
+	for _, u := range []string{
+		"https://9to5linux.com/kernel-6-10",
+		"https://archlinux.org/news/installer",
+	} {
+		if !strings.Contains(out, u) {
+			t.Errorf("HTML missing source URL %q", u)
+		}
+	}
+}
+
+func TestRenderHTMLInlineCitationsLinkToSources(t *testing.T) {
+	out, _ := RenderHTML(sampleNewsletter())
+	if !strings.Contains(out, `<sup`) {
+		t.Error("expected inline citations rendered as superscripts")
+	}
+	if !strings.Contains(out, `href="https://9to5linux.com/kernel-6-10"`) {
+		t.Error("expected inline citation [1] to link to its source URL")
+	}
+	if !strings.Contains(out, `id="ref-1"`) || !strings.Contains(out, `id="ref-2"`) {
+		t.Error("expected footer reference anchors for each cited source")
+	}
+}
+
+func TestRenderHTMLFooterMatchesInlineCitations(t *testing.T) {
+	n := sampleNewsletter()
+	out, _ := RenderHTML(n)
+	for _, r := range n.References {
+		if !strings.Contains(out, r.Title) {
+			t.Errorf("footer missing referenced title %q", r.Title)
+		}
+		if !strings.Contains(out, r.URL) {
+			t.Errorf("footer missing referenced url %q", r.URL)
+		}
+	}
+}
+
+func TestRenderHTMLDoesNotUseCardLayout(t *testing.T) {
+	out, _ := RenderHTML(sampleNewsletter())
+	for _, banned := range []string{"why_it_matters", "why it matters", "read &rarr;"} {
+		if strings.Contains(out, banned) {
+			t.Errorf("unified email must not render old card element %q", banned)
+		}
+	}
+}
+
 func TestRenderHTMLEscapesUnsafeContent(t *testing.T) {
 	n := Newsletter{
-		Title: "Tux Letter",
-		Items: []Item{{
-			Title:   `<script>alert('x')</script>`,
-			Summary: `<img src=x onerror=alert(1)>`,
-			Source:  "evil",
-			URL:     "https://example.com/a",
+		Brand:    "Tux Letter",
+		Title:    `<script>alert('t')</script>`,
+		Subtitle: `<img src=x onerror=alert(2)>`,
+		Sections: []Section{{
+			Heading:    `<b>head</b>`,
+			Paragraphs: []string{`A paragraph with <script>alert('p')</script> and a cite [1].`},
 		}},
+		References: []Reference{{ID: 1, Title: `<script>alert('s')</script>`, Source: `<i>evil</i>`, URL: "https://example.com/a"}},
 	}
 	out, err := RenderHTML(n)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(out, "<script>alert") {
-		t.Error("raw <script> must be escaped")
-	}
-	if strings.Contains(out, "<img src=x onerror") {
-		t.Error("raw <img> must be escaped")
+	for _, raw := range []string{"<script>alert", "<img src=x onerror", "<b>head</b>", "<i>evil</i>"} {
+		if strings.Contains(out, raw) {
+			t.Errorf("raw unsafe content not escaped: %q", raw)
+		}
 	}
 	if !strings.Contains(out, "&lt;script&gt;") {
 		t.Error("expected escaped script entity")
@@ -77,8 +132,12 @@ func TestRenderHTMLEscapesUnsafeContent(t *testing.T) {
 
 func TestRenderHTMLRejectsUnsafeURLScheme(t *testing.T) {
 	n := Newsletter{
-		Title: "Tux Letter",
-		Items: []Item{{Title: "Bad", URL: "javascript:alert(1)", Source: "x"}},
+		Brand:    "Tux Letter",
+		Title:    "Bad links",
+		Sections: []Section{{Heading: "x", Paragraphs: []string{"A cite [1]."}}},
+		References: []Reference{
+			{ID: 1, Title: "Bad", Source: "x", URL: "javascript:alert(1)"},
+		},
 	}
 	out, err := RenderHTML(n)
 	if err != nil {
@@ -89,45 +148,49 @@ func TestRenderHTMLRejectsUnsafeURLScheme(t *testing.T) {
 	}
 }
 
-func TestRenderHTMLEmptyOptionalFields(t *testing.T) {
-	n := Newsletter{
-		Title: "Tux Letter",
-		Items: []Item{{Title: "Just a title", Source: "", URL: ""}},
-	}
-	out, err := RenderHTML(n)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(out, "Just a title") {
-		t.Error("title should render even with empty optional fields")
-	}
-	if !strings.Contains(out, "unknown") {
-		t.Error("missing source should fall back to 'unknown'")
+func TestRenderHTMLReadableCypherpunkIdentity(t *testing.T) {
+	out, _ := RenderHTML(sampleNewsletter())
+	for _, want := range []string{
+		"#0b0f14",
+		"#00e5ff",
+		"font-size:15px;line-height:1.75",
+		"@media (max-width:620px)",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("expected readable cypherpunk marker %q", want)
+		}
 	}
 }
 
-func TestRenderHTMLNoItems(t *testing.T) {
-	out, err := RenderHTML(Newsletter{Title: "Tux Letter"})
+func TestRenderHTMLNoSections(t *testing.T) {
+	out, err := RenderHTML(Newsletter{Brand: "Tux Letter", Title: "Empty"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(out, "No new dispatches") {
+	if !strings.Contains(out, "No dispatch content") {
 		t.Error("empty newsletter should show a placeholder")
 	}
+	if strings.Contains(out, "// sources") {
+		t.Error("no references means no sources footer")
+	}
 }
 
-func TestRenderText(t *testing.T) {
+func TestRenderTextUnifiedArticle(t *testing.T) {
 	out, err := RenderText(sampleNewsletter())
 	if err != nil {
 		t.Fatalf("RenderText: %v", err)
 	}
 	for _, want := range []string{
 		"TUX LETTER",
-		"Kernel 6.10 Released",
+		"A Quiet Week in Kernel Land",
+		"// KERNEL",
+		"broader hardware support",
+		"management [1].",
+		"SOURCES",
+		"[1] Kernel 6.10 Released — 9to5Linux",
 		"https://9to5linux.com/kernel-6-10",
-		"#linux #kernel",
-		"why it matters",
-		"2 articles // 2 sources",
+		"https://archlinux.org/news/installer",
+		"2 sources",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("text missing %q", want)
@@ -135,5 +198,8 @@ func TestRenderText(t *testing.T) {
 	}
 	if strings.Contains(out, "<") {
 		t.Error("plain text should not contain HTML tags")
+	}
+	if strings.Contains(out, "why_it_matters") {
+		t.Error("plain text must not render the old why_it_matters layout")
 	}
 }

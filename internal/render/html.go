@@ -3,26 +3,35 @@ package render
 import (
 	"fmt"
 	"html"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
+
+var citationRe = regexp.MustCompile(`\[(\d+)\]`)
 
 func RenderHTML(n Newsletter) (string, error) {
 	return RenderHTMLWithTheme(n, Cypherpunk())
 }
 
 func RenderHTMLWithTheme(n Newsletter, t Theme) (string, error) {
-	title := n.Title
-	if strings.TrimSpace(title) == "" {
-		title = "Tux Letter"
+	brand := strings.TrimSpace(n.Brand)
+	if brand == "" {
+		brand = "Tux Letter"
 	}
+	headline := strings.TrimSpace(n.Title)
+	if headline == "" {
+		headline = brand
+	}
+	refs := referenceMap(n.References)
 
 	var b strings.Builder
 	b.WriteString("<!DOCTYPE html>\n")
 	b.WriteString(`<html lang="en"><head><meta charset="utf-8">`)
 	b.WriteString(`<meta name="viewport" content="width=device-width,initial-scale=1">`)
 	b.WriteString(`<meta name="color-scheme" content="dark">`)
-	b.WriteString(`<title>` + esc(title) + `</title>`)
+	b.WriteString(`<title>` + esc(headline) + `</title>`)
 	b.WriteString("<style>")
 	b.WriteString(`a{text-decoration:none}`)
 	b.WriteString(`a:hover{text-decoration:underline}`)
@@ -36,18 +45,21 @@ func RenderHTMLWithTheme(n Newsletter, t Theme) (string, error) {
 	b.WriteString(`<tr><td align="center">`)
 	b.WriteString(fmt.Sprintf(`<table role="presentation" class="tl-container" width="680" cellpadding="0" cellspacing="0" style="width:680px;max-width:680px;background:%s;border:1px solid %s;border-radius:10px;overflow:hidden;">`, t.Surface, t.Border))
 
-	writeHeader(&b, t, title)
+	writeHeader(&b, t, brand)
+	writeMeta(&b, t, n)
+	writeHeadline(&b, t, headline, n.Subtitle)
 	if s := strings.TrimSpace(n.Summary); s != "" {
 		writeSummary(&b, t, s)
 	}
-	writeItems(&b, t, n.Items)
+	writeBody(&b, t, n.Sections, refs)
+	writeReferences(&b, t, n.References)
 	writeFooter(&b, t, n)
 
 	b.WriteString(`</table></td></tr></table></body></html>`)
 	return b.String(), nil
 }
 
-func writeHeader(b *strings.Builder, t Theme, title string) {
+func writeHeader(b *strings.Builder, t Theme, brand string) {
 	b.WriteString(fmt.Sprintf(`<tr><td class="tl-pad" style="padding:22px 28px;background:%s;border-bottom:1px solid %s;">`, t.Surface2, t.Border))
 
 	b.WriteString(fmt.Sprintf(`<div style="font-family:%s;font-size:12px;color:%s;letter-spacing:1px;">`, fontMono, t.Muted))
@@ -55,7 +67,7 @@ func writeHeader(b *strings.Builder, t Theme, title string) {
 	b.WriteString(`&nbsp;&nbsp;tux@letter:~$ cat dispatch</div>`)
 
 	b.WriteString(fmt.Sprintf(`<div style="font-family:%s;font-size:30px;font-weight:700;letter-spacing:4px;color:%s;margin-top:12px;">%s</div>`,
-		fontMono, t.Accent, esc(strings.ToUpper(title))))
+		fontMono, t.Accent, esc(strings.ToUpper(brand))))
 
 	b.WriteString(fmt.Sprintf(`<div style="font-family:%s;font-size:13px;color:%s;margin-top:4px;">%s</div>`,
 		fontMono, t.Accent2, esc(Tagline)))
@@ -64,96 +76,120 @@ func writeHeader(b *strings.Builder, t Theme, title string) {
 	b.WriteString(`</td></tr>`)
 }
 
+func writeMeta(b *strings.Builder, t Theme, n Newsletter) {
+	stamp := "unknown"
+	if !n.GeneratedAt.IsZero() {
+		stamp = n.GeneratedAt.UTC().Format("2006-01-02 15:04 UTC")
+	}
+	b.WriteString(fmt.Sprintf(`<tr><td class="tl-pad" style="padding:16px 28px 0 28px;"><div style="font-family:%s;font-size:11px;color:%s;letter-spacing:1px;text-transform:uppercase;">issue // %s // %d sources</div></td></tr>`,
+		fontMono, t.Muted, esc(stamp), len(n.References)))
+}
+
+func writeHeadline(b *strings.Builder, t Theme, headline, subtitle string) {
+	b.WriteString(`<tr><td class="tl-pad" style="padding:10px 28px 0 28px;">`)
+	b.WriteString(fmt.Sprintf(`<div style="font-size:26px;font-weight:700;line-height:1.28;color:%s;">%s</div>`, t.Text, esc(headline)))
+	if s := strings.TrimSpace(subtitle); s != "" {
+		b.WriteString(fmt.Sprintf(`<div style="font-size:16px;line-height:1.5;color:%s;margin-top:8px;">%s</div>`, t.Muted, esc(s)))
+	}
+	b.WriteString(`</td></tr>`)
+}
+
 func writeSummary(b *strings.Builder, t Theme, summary string) {
-	b.WriteString(`<tr><td class="tl-pad" style="padding:24px 28px 6px 28px;">`)
+	b.WriteString(`<tr><td class="tl-pad" style="padding:20px 28px 6px 28px;">`)
 	b.WriteString(fmt.Sprintf(`<div style="font-family:%s;font-size:11px;text-transform:uppercase;letter-spacing:2px;color:%s;margin-bottom:8px;">// briefing</div>`, fontMono, t.Accent))
 	b.WriteString(fmt.Sprintf(`<div style="background:%s;border-left:3px solid %s;border-radius:6px;padding:16px 18px;font-size:15px;line-height:1.6;color:%s;">%s</div>`,
 		t.Surface2, t.Accent, t.Text, esc(summary)))
 	b.WriteString(`</td></tr>`)
 }
 
-func writeItems(b *strings.Builder, t Theme, items []Item) {
-	b.WriteString(`<tr><td class="tl-pad" style="padding:18px 28px 8px 28px;">`)
-	if len(items) == 0 {
-		b.WriteString(fmt.Sprintf(`<div style="font-family:%s;font-size:14px;color:%s;padding:8px 0;">No new dispatches in this cycle.</div>`, fontMono, t.Muted))
+func writeBody(b *strings.Builder, t Theme, sections []Section, refs map[int]Reference) {
+	if len(sections) == 0 {
+		b.WriteString(`<tr><td class="tl-pad" style="padding:18px 28px 8px 28px;">`)
+		b.WriteString(fmt.Sprintf(`<div style="font-family:%s;font-size:14px;color:%s;padding:8px 0;">No dispatch content in this cycle.</div>`, fontMono, t.Muted))
 		b.WriteString(`</td></tr>`)
 		return
 	}
-	for i, it := range items {
-		writeCard(b, t, i+1, it)
+
+	b.WriteString(`<tr><td class="tl-pad" style="padding:8px 28px 8px 28px;">`)
+	for _, sec := range sections {
+		if h := strings.TrimSpace(sec.Heading); h != "" {
+			b.WriteString(fmt.Sprintf(`<div style="font-family:%s;font-size:13px;text-transform:uppercase;letter-spacing:2px;color:%s;margin:22px 0 10px 0;">// %s</div>`,
+				fontMono, t.Accent2, esc(strings.ToLower(h))))
+		}
+		for _, p := range sec.Paragraphs {
+			if strings.TrimSpace(p) == "" {
+				continue
+			}
+			b.WriteString(fmt.Sprintf(`<p style="margin:0 0 14px 0;font-size:15px;line-height:1.75;color:%s;">%s</p>`,
+				t.Text, renderParagraph(t, p, refs)))
+		}
 	}
 	b.WriteString(`</td></tr>`)
 }
 
-func writeCard(b *strings.Builder, t Theme, index int, it Item) {
-	b.WriteString(fmt.Sprintf(`<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;background:%s;border:1px solid %s;border-radius:8px;"><tr><td style="padding:16px 18px;">`,
-		t.Surface2, t.Border))
-
-	source := strings.TrimSpace(it.Source)
-	if source == "" {
-		source = "unknown"
-	}
-	b.WriteString(fmt.Sprintf(`<div style="font-family:%s;font-size:11px;color:%s;letter-spacing:1px;">[%02d] %s</div>`,
-		fontMono, t.Accent2, index, esc(strings.ToLower(source))))
-
-	titleHTML := esc(it.Title)
-	if u := safeURL(it.URL); u != "" {
-		titleHTML = fmt.Sprintf(`<a href="%s" style="color:%s;">%s</a>`, u, t.Accent, esc(it.Title))
-	}
-	b.WriteString(fmt.Sprintf(`<div style="font-size:17px;font-weight:600;line-height:1.4;margin:6px 0 8px 0;color:%s;">%s</div>`,
-		t.Text, titleHTML))
-
-	if s := strings.TrimSpace(it.Summary); s != "" {
-		b.WriteString(fmt.Sprintf(`<div style="font-size:15px;line-height:1.6;color:%s;">%s</div>`, t.Text, esc(s)))
-	}
-
-	if w := strings.TrimSpace(it.WhyItMatters); w != "" {
-		b.WriteString(fmt.Sprintf(`<div style="margin-top:10px;font-size:14px;line-height:1.55;color:%s;">`, t.Muted))
-		b.WriteString(fmt.Sprintf(`<span style="font-family:%s;color:%s;">why_it_matters &gt; </span>`, fontMono, t.Warning))
-		b.WriteString(esc(w) + `</div>`)
-	}
-
-	writeTags(b, t, it.Tags)
-
-	if u := safeURL(it.URL); u != "" {
-		b.WriteString(fmt.Sprintf(`<div style="margin-top:12px;font-family:%s;font-size:12px;"><a href="%s" style="color:%s;">read &rarr; %s</a></div>`,
-			fontMono, u, t.Accent, esc(displayURL(it.URL))))
-	}
-
-	b.WriteString(`</td></tr></table>`)
-}
-
-func writeTags(b *strings.Builder, t Theme, tags []string) {
-	var clean []string
-	for _, tag := range tags {
-		if s := strings.TrimSpace(tag); s != "" {
-			clean = append(clean, s)
-		}
-	}
-	if len(clean) == 0 {
+func writeReferences(b *strings.Builder, t Theme, refs []Reference) {
+	if len(refs) == 0 {
 		return
 	}
-	b.WriteString(`<div style="margin-top:12px;line-height:2;">`)
-	for _, tag := range clean {
-		b.WriteString(fmt.Sprintf(`<span style="font-family:%s;font-size:11px;color:%s;background:%s;border:1px solid %s;border-radius:4px;padding:3px 8px;margin-right:6px;">%s</span>`,
-			fontMono, t.Accent, t.Surface, t.Border, esc(strings.ToLower(tag))))
+	b.WriteString(fmt.Sprintf(`<tr><td class="tl-pad" style="padding:20px 28px 6px 28px;border-top:1px solid %s;">`, t.Border))
+	b.WriteString(fmt.Sprintf(`<div style="font-family:%s;font-size:11px;text-transform:uppercase;letter-spacing:2px;color:%s;margin-bottom:12px;">// sources</div>`, fontMono, t.Accent))
+	for _, r := range refs {
+		b.WriteString(fmt.Sprintf(`<div id="ref-%d" style="margin:0 0 12px 0;font-size:13px;line-height:1.5;color:%s;">`, r.ID, t.Muted))
+		b.WriteString(fmt.Sprintf(`<span style="font-family:%s;color:%s;">[%d]</span> `, fontMono, t.Accent, r.ID))
+
+		label := esc(strings.TrimSpace(r.Title))
+		if src := strings.TrimSpace(r.Source); src != "" {
+			label += ` &mdash; <span style="color:` + t.Accent2 + `;">` + esc(src) + `</span>`
+		}
+		if u := safeURL(r.URL); u != "" {
+			b.WriteString(fmt.Sprintf(`<a href="%s" style="color:%s;">%s</a>`, u, t.Text, label))
+			b.WriteString(fmt.Sprintf(`<div style="font-family:%s;font-size:12px;color:%s;margin-top:2px;">%s</div>`, fontMono, t.Muted, esc(r.URL)))
+		} else {
+			b.WriteString(label)
+		}
+		b.WriteString(`</div>`)
 	}
-	b.WriteString(`</div>`)
+	b.WriteString(`</td></tr>`)
 }
 
 func writeFooter(b *strings.Builder, t Theme, n Newsletter) {
-	b.WriteString(fmt.Sprintf(`<tr><td class="tl-pad" style="padding:20px 28px 26px 28px;border-top:1px solid %s;background:%s;">`, t.Border, t.Surface2))
+	b.WriteString(fmt.Sprintf(`<tr><td class="tl-pad" style="padding:18px 28px 26px 28px;border-top:1px solid %s;background:%s;">`, t.Border, t.Surface2))
 
 	stamp := "unknown"
 	if !n.GeneratedAt.IsZero() {
 		stamp = n.GeneratedAt.UTC().Format(time.RFC1123)
 	}
 	b.WriteString(fmt.Sprintf(`<div style="font-family:%s;font-size:12px;color:%s;line-height:1.7;">`, fontMono, t.Muted))
-	b.WriteString(fmt.Sprintf(`tux-letter // %d articles // %d sources<br>`, len(n.Items), len(n.Sources)))
+	b.WriteString(fmt.Sprintf(`tux-letter // %d sources<br>`, len(n.References)))
 	b.WriteString(`generated ` + esc(stamp) + `<br>`)
 	b.WriteString(fmt.Sprintf(`<a href="%s" style="color:%s;">%s</a><br>`, RepositoryURL, t.Accent, esc(RepositoryURL)))
 	b.WriteString(`<span style="color:` + t.Muted + `">generated locally by tux-letter</span>`)
 	b.WriteString(`</div></td></tr>`)
+}
+
+func renderParagraph(t Theme, paragraph string, refs map[int]Reference) string {
+	escaped := esc(paragraph)
+	return citationRe.ReplaceAllStringFunc(escaped, func(m string) string {
+		sub := citationRe.FindStringSubmatch(m)
+		id, err := strconv.Atoi(sub[1])
+		if err != nil {
+			return m
+		}
+		if ref, ok := refs[id]; ok {
+			if u := safeURL(ref.URL); u != "" {
+				return fmt.Sprintf(`<sup style="font-size:11px;"><a href="%s" style="color:%s;font-family:%s;">[%d]</a></sup>`, u, t.Accent, fontMono, id)
+			}
+		}
+		return fmt.Sprintf(`<sup style="font-size:11px;color:%s;font-family:%s;">[%d]</sup>`, t.Accent, fontMono, id)
+	})
+}
+
+func referenceMap(refs []Reference) map[int]Reference {
+	m := make(map[int]Reference, len(refs))
+	for _, r := range refs {
+		m[r.ID] = r
+	}
+	return m
 }
 
 func esc(s string) string { return html.EscapeString(s) }
@@ -165,14 +201,4 @@ func safeURL(raw string) string {
 		return html.EscapeString(raw)
 	}
 	return ""
-}
-
-func displayURL(raw string) string {
-	raw = strings.TrimSpace(raw)
-	raw = strings.TrimPrefix(raw, "https://")
-	raw = strings.TrimPrefix(raw, "http://")
-	if len(raw) > 60 {
-		raw = raw[:60] + "…"
-	}
-	return raw
 }

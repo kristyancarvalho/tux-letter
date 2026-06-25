@@ -31,19 +31,22 @@ func sampleArticles() []article.Article {
 	}
 }
 
-const validJSON = `{"title":"Tux Letter","summary":"Two updates.","items":[{"title":"Kernel 6.20","source":"lwn","url":"https://lwn.net/a","summary":"s","why_it_matters":"w","tags":["linux"]}]}`
+const validJSON = `{"title":"Tux Letter Weekly","subtitle":"a quiet but meaningful cycle","summary":"Two updates this week.","body":[{"heading":"kernel and graphics","paragraphs":["The 6.20 kernel broadens hardware support [1], while Mesa 25 modernizes the graphics stack [2]."]}],"sources":[{"id":1,"title":"Kernel 6.20","source":"lwn","url":"https://lwn.net/a"},{"id":2,"title":"Mesa 25","source":"phoronix","url":"https://phoronix.com/b"}]}`
 
 func TestGenerateUsesFirstWorkingModel(t *testing.T) {
 	stub := &stubCompleter{
 		responses: map[string]string{"good": validJSON},
 	}
 	g := NewGenerator(stub, []string{"good", "unused"})
-	d, err := g.Generate(context.Background(), config.NewsletterConfig{Title: "Tux Letter"}, sampleArticles())
+	a, err := g.Generate(context.Background(), config.NewsletterConfig{Title: "Tux Letter"}, sampleArticles())
 	if err != nil {
 		t.Fatalf("generate: %v", err)
 	}
-	if len(d.Items) != 1 {
-		t.Fatalf("expected 1 item, got %d", len(d.Items))
+	if a.Title == "" {
+		t.Error("expected a title")
+	}
+	if len(a.Sources) != 2 {
+		t.Fatalf("expected 2 reconciled sources, got %d", len(a.Sources))
 	}
 	if len(stub.calls) != 1 || stub.calls[0] != "good" {
 		t.Errorf("expected only first model called, got %v", stub.calls)
@@ -56,11 +59,11 @@ func TestGenerateFallsBackOnRateLimit(t *testing.T) {
 		errs:      map[string]error{"first": &APIError{Status: http.StatusTooManyRequests, Message: "slow down"}},
 	}
 	g := NewGenerator(stub, []string{"first", "second"})
-	d, err := g.Generate(context.Background(), config.NewsletterConfig{}, sampleArticles())
+	a, err := g.Generate(context.Background(), config.NewsletterConfig{}, sampleArticles())
 	if err != nil {
 		t.Fatalf("generate: %v", err)
 	}
-	if d.Title == "" {
+	if a.Title == "" {
 		t.Error("expected a title")
 	}
 	if len(stub.calls) != 2 || stub.calls[0] != "first" || stub.calls[1] != "second" {
@@ -68,7 +71,7 @@ func TestGenerateFallsBackOnRateLimit(t *testing.T) {
 	}
 }
 
-func TestGenerateRetriesInvalidOutputThenFallsBack(t *testing.T) {
+func TestGenerateRetriesInvalidOutputThenNextModel(t *testing.T) {
 	stub := &stubCompleter{
 		responses: map[string]string{
 			"bad":  "not json at all",
@@ -76,8 +79,7 @@ func TestGenerateRetriesInvalidOutputThenFallsBack(t *testing.T) {
 		},
 	}
 	g := NewGenerator(stub, []string{"bad", "good"})
-	_, err := g.Generate(context.Background(), config.NewsletterConfig{}, sampleArticles())
-	if err != nil {
+	if _, err := g.Generate(context.Background(), config.NewsletterConfig{}, sampleArticles()); err != nil {
 		t.Fatalf("generate: %v", err)
 	}
 	got := strings.Join(stub.calls, ",")
@@ -94,13 +96,20 @@ func TestGenerateAllModelsFail(t *testing.T) {
 	}
 }
 
-func TestFallbackDigest(t *testing.T) {
-	d := FallbackDigest(config.NewsletterConfig{Title: "Tux Letter"}, sampleArticles())
-	if err := d.Validate(); err != nil {
-		t.Fatalf("fallback digest invalid: %v", err)
+func TestFallbackArticleIsValid(t *testing.T) {
+	cfg := config.NewsletterConfig{Title: "Tux Letter"}
+	a := FallbackArticle(cfg, sampleArticles())
+	if err := a.ValidateAgainst(BuildBundle(cfg, sampleArticles())); err != nil {
+		t.Fatalf("fallback article invalid: %v", err)
 	}
-	if len(d.Items) != 2 {
-		t.Errorf("expected 2 items, got %d", len(d.Items))
+	if len(a.Body) == 0 {
+		t.Error("expected fallback body sections")
+	}
+	if len(a.Sources) != 2 {
+		t.Errorf("expected 2 sources, got %d", len(a.Sources))
+	}
+	if len(CitedIDs(a)) == 0 {
+		t.Error("expected inline citations in fallback")
 	}
 }
 
@@ -114,13 +123,13 @@ func TestAPIErrorTransient(t *testing.T) {
 	}
 }
 
-func TestParseDigestStripsCodeFence(t *testing.T) {
+func TestParseArticleStripsCodeFence(t *testing.T) {
 	raw := "```json\n" + validJSON + "\n```"
-	d, err := ParseDigest(raw)
+	a, err := ParseArticle(raw)
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
-	if d.Title != "Tux Letter" {
-		t.Errorf("unexpected title: %q", d.Title)
+	if a.Title != "Tux Letter Weekly" {
+		t.Errorf("unexpected title: %q", a.Title)
 	}
 }
