@@ -3,20 +3,25 @@ package render
 import "time"
 
 type Newsletter struct {
+	Brand       string
 	Title       string
+	Subtitle    string
 	Summary     string
-	Items       []Item
+	Sections    []Section
+	References  []Reference
 	GeneratedAt time.Time
-	Sources     []string
 }
 
-type Item struct {
-	Title        string
-	Source       string
-	URL          string
-	Summary      string
-	WhyItMatters string
-	Tags         []string
+type Section struct {
+	Heading    string
+	Paragraphs []string
+}
+
+type Reference struct {
+	ID     int
+	Title  string
+	Source string
+	URL    string
 }
 
 const (

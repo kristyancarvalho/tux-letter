@@ -7,46 +7,61 @@ import (
 )
 
 func RenderText(n Newsletter) (string, error) {
-	title := strings.TrimSpace(n.Title)
-	if title == "" {
-		title = "Tux Letter"
+	brand := strings.TrimSpace(n.Brand)
+	if brand == "" {
+		brand = "Tux Letter"
+	}
+	headline := strings.TrimSpace(n.Title)
+	if headline == "" {
+		headline = brand
 	}
 
 	var b strings.Builder
 	rule := strings.Repeat("=", 60)
 
 	b.WriteString(rule + "\n")
-	b.WriteString("  " + strings.ToUpper(title) + "\n")
+	b.WriteString("  " + strings.ToUpper(brand) + "\n")
 	b.WriteString("  " + Tagline + "\n")
 	b.WriteString("  " + SubTagline + "\n")
 	b.WriteString(rule + "\n\n")
+
+	b.WriteString(headline + "\n")
+	if s := strings.TrimSpace(n.Subtitle); s != "" {
+		b.WriteString(wrap(s, 72) + "\n")
+	}
+	b.WriteString("\n")
 
 	if s := strings.TrimSpace(n.Summary); s != "" {
 		b.WriteString("// BRIEFING\n")
 		b.WriteString(wrap(s, 72) + "\n\n")
 	}
 
-	if len(n.Items) == 0 {
-		b.WriteString("No new dispatches in this cycle.\n\n")
+	if len(n.Sections) == 0 {
+		b.WriteString("No dispatch content in this cycle.\n\n")
 	}
-	for i, it := range n.Items {
-		source := strings.TrimSpace(it.Source)
-		if source == "" {
-			source = "unknown"
+	for _, sec := range n.Sections {
+		if h := strings.TrimSpace(sec.Heading); h != "" {
+			b.WriteString("// " + strings.ToUpper(h) + "\n")
 		}
-		b.WriteString(fmt.Sprintf("[%02d] %s\n", i+1, strings.ToLower(source)))
-		b.WriteString("     " + strings.TrimSpace(it.Title) + "\n")
-		if s := strings.TrimSpace(it.Summary); s != "" {
-			b.WriteString(indent(wrap(s, 68), "     ") + "\n")
+		for _, p := range sec.Paragraphs {
+			if strings.TrimSpace(p) == "" {
+				continue
+			}
+			b.WriteString(wrap(p, 72) + "\n\n")
 		}
-		if w := strings.TrimSpace(it.WhyItMatters); w != "" {
-			b.WriteString(indent(wrap("why it matters > "+w, 68), "     ") + "\n")
-		}
-		if tags := cleanTags(it.Tags); len(tags) > 0 {
-			b.WriteString("     #" + strings.Join(tags, " #") + "\n")
-		}
-		if u := strings.TrimSpace(it.URL); u != "" {
-			b.WriteString("     " + u + "\n")
+	}
+
+	if len(n.References) > 0 {
+		b.WriteString("SOURCES\n")
+		for _, r := range n.References {
+			line := fmt.Sprintf("[%d] %s", r.ID, strings.TrimSpace(r.Title))
+			if src := strings.TrimSpace(r.Source); src != "" {
+				line += " — " + src
+			}
+			b.WriteString(line + "\n")
+			if u := strings.TrimSpace(r.URL); u != "" {
+				b.WriteString("    " + u + "\n")
+			}
 		}
 		b.WriteString("\n")
 	}
@@ -56,22 +71,12 @@ func RenderText(n Newsletter) (string, error) {
 	if !n.GeneratedAt.IsZero() {
 		stamp = n.GeneratedAt.UTC().Format(time.RFC1123)
 	}
-	b.WriteString(fmt.Sprintf("tux-letter // %d articles // %d sources\n", len(n.Items), len(n.Sources)))
+	b.WriteString(fmt.Sprintf("tux-letter // %d sources\n", len(n.References)))
 	b.WriteString("generated " + stamp + "\n")
 	b.WriteString(RepositoryURL + "\n")
 	b.WriteString("generated locally by tux-letter\n")
 
 	return b.String(), nil
-}
-
-func cleanTags(tags []string) []string {
-	var out []string
-	for _, tag := range tags {
-		if s := strings.TrimSpace(tag); s != "" {
-			out = append(out, strings.ToLower(s))
-		}
-	}
-	return out
 }
 
 func wrap(s string, width int) string {
@@ -93,12 +98,4 @@ func wrap(s string, width int) string {
 		lineLen += len(w)
 	}
 	return b.String()
-}
-
-func indent(s, prefix string) string {
-	lines := strings.Split(s, "\n")
-	for i, l := range lines {
-		lines[i] = prefix + l
-	}
-	return strings.Join(lines, "\n")
 }

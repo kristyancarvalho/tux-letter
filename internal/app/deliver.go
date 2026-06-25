@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/kristyancarvalho/tux-letter/internal/ai"
@@ -10,28 +11,30 @@ import (
 	"github.com/kristyancarvalho/tux-letter/internal/render"
 )
 
-func (a *App) toNewsletter(d ai.Digest, sources []string, at time.Time) render.Newsletter {
-	title := d.Title
-	if title == "" {
-		title = a.cfg.Newsletter.Title
+func (a *App) toNewsletter(art ai.Article, at time.Time) render.Newsletter {
+	brand := strings.TrimSpace(a.cfg.Newsletter.Title)
+	if brand == "" {
+		brand = "Tux Letter"
 	}
-	items := make([]render.Item, 0, len(d.Items))
-	for _, it := range d.Items {
-		items = append(items, render.Item{
-			Title:        it.Title,
-			Source:       it.Source,
-			URL:          it.URL,
-			Summary:      it.Summary,
-			WhyItMatters: it.WhyItMatters,
-			Tags:         it.Tags,
-		})
+
+	sections := make([]render.Section, 0, len(art.Body))
+	for _, s := range art.Body {
+		sections = append(sections, render.Section{Heading: s.Heading, Paragraphs: s.Paragraphs})
 	}
+
+	refs := make([]render.Reference, 0, len(art.Sources))
+	for _, r := range art.Sources {
+		refs = append(refs, render.Reference{ID: r.ID, Title: r.Title, Source: r.Source, URL: r.URL})
+	}
+
 	return render.Newsletter{
-		Title:       title,
-		Summary:     d.Summary,
-		Items:       items,
+		Brand:       brand,
+		Title:       art.Title,
+		Subtitle:    art.Subtitle,
+		Summary:     art.Summary,
+		Sections:    sections,
+		References:  refs,
 		GeneratedAt: at,
-		Sources:     sources,
 	}
 }
 
@@ -47,7 +50,7 @@ func (a *App) deliver(n render.Newsletter) error {
 
 	if !a.cfg.Email.Enabled {
 		fmt.Println(textOut)
-		logx.Info("email disabled, wrote newsletter to stdout", "items", len(n.Items))
+		logx.Info("email disabled, wrote newsletter to stdout", "sources", len(n.References))
 		return nil
 	}
 
@@ -55,13 +58,16 @@ func (a *App) deliver(n render.Newsletter) error {
 	if err != nil {
 		return err
 	}
-	subject := n.Title
+	subject := strings.TrimSpace(n.Title)
+	if subject == "" {
+		subject = strings.TrimSpace(n.Brand)
+	}
 	if subject == "" {
 		subject = "Tux Letter"
 	}
 	if err := mail.Send(settings, mail.Message{Subject: subject, Text: textOut, HTML: htmlOut}); err != nil {
 		return fmt.Errorf("send email: %w", err)
 	}
-	logx.Info("newsletter delivered by email", "recipients", len(settings.To), "items", len(n.Items))
+	logx.Info("newsletter delivered by email", "recipients", len(settings.To), "sources", len(n.References))
 	return nil
 }

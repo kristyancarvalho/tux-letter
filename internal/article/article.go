@@ -8,6 +8,7 @@ type Article struct {
 	Source    string
 	Author    string
 	Excerpt   string
+	Content   string
 	Published time.Time
 	Hash      string
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/kristyancarvalho/tux-letter/internal/ai"
@@ -12,6 +13,7 @@ import (
 	"github.com/kristyancarvalho/tux-letter/internal/collect"
 	"github.com/kristyancarvalho/tux-letter/internal/fetch"
 	"github.com/kristyancarvalho/tux-letter/internal/logx"
+	"github.com/kristyancarvalho/tux-letter/internal/scrape"
 	"github.com/kristyancarvalho/tux-letter/internal/source"
 	"github.com/kristyancarvalho/tux-letter/internal/state"
 )
@@ -54,8 +56,10 @@ func (a *App) Once(ctx context.Context) error {
 		return nil
 	}
 
-	digest := a.summarize(ctx, articles)
-	newsletter := a.toNewsletter(digest, sourceNames(sources), now)
+	articles = a.enrichContent(ctx, fetcher, articles)
+
+	art := a.summarize(ctx, articles)
+	newsletter := a.toNewsletter(art, now)
 	if err := a.deliver(newsletter); err != nil {
 		return err
 	}
@@ -64,20 +68,38 @@ func (a *App) Once(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) summarize(ctx context.Context, articles []article.Article) ai.Digest {
+func (a *App) summarize(ctx context.Context, articles []article.Article) ai.Article {
 	apiKey := os.Getenv(a.cfg.OpenRouter.APIKeyEnv)
 	if apiKey == "" || len(a.cfg.OpenRouter.Models) == 0 {
 		logx.Warn("openrouter not configured, using non-ai fallback digest")
-		return ai.FallbackDigest(a.cfg.Newsletter, articles)
+		return ai.FallbackArticle(a.cfg.Newsletter, articles)
 	}
 	client := ai.NewOpenRouter(a.cfg.OpenRouter.BaseURL, apiKey, a.cfg.Fetch.Timeout.Duration())
 	gen := ai.NewGenerator(client, a.cfg.OpenRouter.Models)
-	digest, err := gen.Generate(ctx, a.cfg.Newsletter, articles)
+	art, err := gen.Generate(ctx, a.cfg.Newsletter, articles)
 	if err != nil {
 		logx.Warn("ai generation failed, using non-ai fallback digest", "error", err)
-		return ai.FallbackDigest(a.cfg.Newsletter, articles)
+		return ai.FallbackArticle(a.cfg.Newsletter, articles)
 	}
-	return digest
+	return art
+}
+
+func (a *App) enrichContent(ctx context.Context, f fetch.Fetcher, articles []article.Article) []article.Article {
+	for i := range articles {
+		url := strings.TrimSpace(articles[i].URL)
+		if url == "" {
+			continue
+		}
+		resp, err := f.Get(ctx, url)
+		if err != nil {
+			logx.Warn("article fetch failed, using excerpt", "url", url, "error", err)
+			continue
+		}
+		if content := scrape.ExtractContent(resp.Body); content != "" {
+			articles[i].Content = content
+		}
+	}
+	return articles
 }
 
 func (a *App) openState() *state.Store {
@@ -105,14 +127,6 @@ func capTotal(items []article.Article, max int) []article.Article {
 		return items[:max]
 	}
 	return items
-}
-
-func sourceNames(sources []source.Source) []string {
-	out := make([]string, 0, len(sources))
-	for _, s := range sources {
-		out = append(out, s.Name)
-	}
-	return out
 }
 
 func (a *App) SourcesTest(ctx context.Context) error {
