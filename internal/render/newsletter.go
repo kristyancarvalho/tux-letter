@@ -4,6 +4,7 @@ import "time"
 
 type Newsletter struct {
 	Brand       string
+	Language    string
 	Title       string
 	Subtitle    string
 	Summary     string

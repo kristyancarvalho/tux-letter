@@ -15,8 +15,9 @@ func FallbackArticle(cfg config.NewsletterConfig, articles []article.Article) Ar
 	}
 
 	bundle := BuildBundle(cfg, articles)
+	loc := fallbackStrings(bundle.Language)
 	if len(bundle.Sources) == 0 {
-		return Article{Title: title, Subtitle: "automated fallback digest"}
+		return Article{Title: title, Subtitle: loc.subtitle}
 	}
 
 	grouped := make(map[string][]BundleSource)
@@ -48,16 +49,44 @@ func FallbackArticle(cfg config.NewsletterConfig, articles []article.Article) Ar
 		sections = append(sections, Section{Heading: name, Paragraphs: paragraphs})
 	}
 
-	summary := fmt.Sprintf("Automated digest of %d articles from %d sources. AI synthesis was unavailable, so this edition links the collected stories directly, grouped by source.",
-		len(bundle.Sources), len(uniqueSources))
+	summary := fmt.Sprintf(loc.summary, len(bundle.Sources), len(uniqueSources))
 
 	return Article{
 		Title:    title,
-		Subtitle: "automated fallback digest",
+		Subtitle: loc.subtitle,
 		Summary:  summary,
 		Body:     sections,
 		Sources:  refs,
 	}
+}
+
+type fallbackText struct {
+	subtitle string
+	summary  string
+}
+
+func fallbackStrings(language string) fallbackText {
+	if primaryLang(language) == "pt" {
+		return fallbackText{
+			subtitle: "compilado automático",
+			summary:  "Compilado automático de %d artigos de %d fontes. A síntese por IA não estava disponível, então esta edição reúne as matérias coletadas diretamente, agrupadas por fonte.",
+		}
+	}
+	return fallbackText{
+		subtitle: "automated fallback digest",
+		summary:  "Automated digest of %d articles from %d sources. AI synthesis was unavailable, so this edition links the collected stories directly, grouped by source.",
+	}
+}
+
+func primaryLang(language string) string {
+	lang := strings.ToLower(strings.TrimSpace(language))
+	if lang == "" {
+		return "en"
+	}
+	if i := strings.IndexAny(lang, "-_"); i > 0 {
+		lang = lang[:i]
+	}
+	return lang
 }
 
 func fallbackParagraph(s BundleSource) string {

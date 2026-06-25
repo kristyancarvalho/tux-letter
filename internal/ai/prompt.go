@@ -76,10 +76,13 @@ func BuildPrompt(cfg config.NewsletterConfig, bundle SourceBundle) Prompt {
 }
 
 func systemPrompt(title string, bundle SourceBundle) string {
+	lang := languageName(bundle.Language)
 	var s strings.Builder
 	s.WriteString("You are the editor of a Linux and open-source intelligence newsletter called " + title + ".\n")
-	s.WriteString("Write in language code: " + bundle.Language + ".\n")
-	s.WriteString("Tone: " + bundle.Style + ".\n")
+	s.WriteString("Write the ENTIRE newsletter in " + lang + " (language tag: " + bundle.Language + ").\n")
+	s.WriteString("Every field must be written in " + lang + ": the title, subtitle, summary, every section heading and every paragraph.\n")
+	s.WriteString("Do not answer in English when another language is requested, except for unavoidable proper nouns, product names, commands or code identifiers.\n")
+	s.WriteString("Match this tone: " + bundle.Style + ".\n")
 	s.WriteString("Read ALL provided source articles in the bundle and synthesize them into ONE cohesive newsletter article.\n")
 	s.WriteString("Group related developments together and explain the broader context for the reader.\n")
 	s.WriteString("Do NOT write one mini-summary per source. Do NOT produce a list of cards. Write a flowing editorial article.\n")
@@ -96,7 +99,7 @@ func repairPrompt(p Prompt, reason error) Prompt {
 	var s strings.Builder
 	s.WriteString(p.System)
 	s.WriteString("\nThe previous response was rejected: " + reason.Error() + ".\n")
-	s.WriteString("Return ONLY a valid JSON object in the required shape, with at least one inline [n] citation that matches a provided source id, and a sources array listing the cited sources.\n")
+	s.WriteString("Write the entire response in the requested language and return ONLY a valid JSON object in the required shape, with at least one inline [n] citation that matches a provided source id, and a sources array listing the cited sources.\n")
 	return Prompt{System: s.String(), User: p.User}
 }
 

@@ -14,6 +14,7 @@ func (a *App) Preview(ctx context.Context, output string) error {
 	if brand := a.cfg.Newsletter.Title; brand != "" {
 		n.Brand = brand
 	}
+	n.Language = a.cfg.Newsletter.Language
 
 	htmlOut, err := render.RenderHTML(n)
 	if err != nil {
