@@ -112,7 +112,7 @@ jobs:
           rm -rf "$package_dir"
 
       - name: Upload release archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tux-letter-linux-${{ matrix.goarch }}
           path: dist/tux-letter_${{ needs.validate.outputs.version }}_linux_${{ matrix.goarch }}.tar.gz
@@ -147,14 +147,14 @@ jobs:
           cat checksums.txt
 
       - name: Upload checksums
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tux-letter-checksums
           path: dist/checksums.txt
           if-no-files-found: error
 
       - name: Upload source archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tux-letter-source
           path: dist/tux-letter-${{ needs.validate.outputs.version }}-src.tar.gz
